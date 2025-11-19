@@ -1,0 +1,343 @@
+/// Deposit positive test (max 5000)
+
+### Deposit positive test 1. step 1 Admin authorization
+POST http://localhost:4111/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin"
+}
+
+### Deposit positive test 1. step 2 Admin creates new user
+// authorization: Basic YWRtaW46YWRtaW4=
+POST http://localhost:4111/api/v1/admin/users
+Content-Type: application/json
+authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "cat2025",
+  "password": "sTRongPassword33$",
+  "role": "USER"
+}
+
+### Deposit positive test 1. step 3 User authorization
+POST http://localhost:4111/api/v1/auth/login
+Content-Type: application/json
+
+{
+ "username": "cat2025",
+  "password": "sTRongPassword33$"
+}
+
+### Deposit positive test 1. step 4 User creates account
+
+POST http://localhost:4111/api/v1/accounts
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+
+### Deposit positive test 1. step 5 User makes deposit
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+
+
+### Deposit positive test 2 with min sum 0.01
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 0.01
+}
+
+
+### Deposit negative test 3 with over max 5000.00 sum
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.01
+}
+
+
+### Deposit negative test 4 with 0 sum
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 0.0
+}
+
+### Deposit negative test 5 - to not existing account
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1111111,
+  "balance": 1000.00
+}
+
+
+// Transfer positive test (max 10000 to user's own account)
+
+### Transfer positive test 1. step 1 User creates another account
+POST http://localhost:4111/api/v1/accounts
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+### Transfer positive test 1. step 2 User makes 1st deposit on their account 5000
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+
+### Transfer positive test 1. step 3 User makes 2nd deposit on their account up to 10000
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+
+### Transfer positive test 1. step 4 User makes transfer 10000 to their own account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 2,
+  "amount": 10000.00
+}
+
+
+// Transfer positive test 2 (min 0.01 to another user account)
+### Transfer positive test 2. step 1 Admin creates new user
+POST http://localhost:4111/api/v1/admin/users
+Content-Type: application/json
+authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "cat2025-2",
+  "password": "sTRongPassword33$",
+  "role": "USER"
+}
+
+### Transfer positive test 2. step 2 User authorisation
+POST http://localhost:4111/api/v1/auth/login
+Content-Type: application/json
+
+{
+ "username": "cat2025-2",
+  "password": "sTRongPassword33$"
+}
+
+### Transfer positive test 2. step 3 User2 creates account
+POST http://localhost:4111/api/v1/accounts
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNS0yOnNUUm9uZ1Bhc3N3b3JkMzMk
+
+### Transfer positive test 2. step 4 User1 transfer 0.01 to User2 account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 0.01
+}
+
+### Deposit negative test 6 - deposit to another User account
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 3,
+  "balance": 1000.00
+}
+
+
+### Transfer negative test 3 - transfer over sum available to another user account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNS0yOnNUUm9uZ1Bhc3N3b3JkMzMk
+
+{
+  "senderAccountId": 3,
+  "receiverAccountId": 2,
+  "amount": 0.02
+}
+
+### Transfer negative test 4 - transfer 0 sum to user's own account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "senderAccountId": 2,
+  "receiverAccountId": 1,
+  "amount": 0.00
+}
+
+
+//Transfer negative test 4 transfer over 10000 (10000.01)
+
+### Transfer negative test 4. step 1 User1 makes deposit
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+### Transfer negative test 4. step 2 User1 makes one more deposit
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+
+### Transfer negative test 4. step 3 User1 makes 3rd deposit
+POST http://localhost:4111/api/v1/accounts/deposit
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "id": 1,
+  "balance": 5000.0
+}
+
+### Transfer negative test 4. step 4 User1 makes transfer 10000.01 to user2 account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 10000.01
+}
+
+### Transfer negative test 5 - transfer 0 sum to another user account
+POST http://localhost:4111/api/v1/accounts/transfer
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "senderAccountId": 1,
+  "receiverAccountId": 3,
+  "amount": 0.0
+}
+
+### Change username positive test 1. User1 can change their name
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Johny Donny"
+}
+
+### Change username positive test 2. name with 2 words but 1 letter
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "l v"
+}
+
+### Change username positive? test 3. name with 2 words in Cyrillic
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Вася Обломов"
+}
+
+### Change username positive test 4. name with 2 very long words
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray"
+}
+
+### Change username negative test 5. name with 2 words separated by several spaces
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Li  Lia"
+}
+
+### Change username negative test 6. name with 2 words separated by comma
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Li,Lia"
+}
+
+### Change username negative test 7. name with not only letters
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Li2 Ku"
+}
+
+### Change username negative test 8. name with spaces
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": " Li KuChi "
+}
+### Change username negative test 9. name with 1 word
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Li"
+}
+### Change username negative test 10. name with 3 words
+PUT http://localhost:4111/api/v1/customer/profile
+Content-Type: application/json
+authorization: Basic Y2F0MjAyNTpzVFJvbmdQYXNzd29yZDMzJA==
+
+{
+  "name": "Li Ku Chi"
+}
