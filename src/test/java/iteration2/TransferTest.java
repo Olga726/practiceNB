@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.post;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TransferTest {
-    private static String username = "Den6";
-    private static String username2 = "Ben6";
+    private static String username = "Den2";
+    private static String username2 = "Ben2";
     private static String password = "sTRongPassword33$";
     private static String userAuthHeader;
     private static String user2AuthHeader;
@@ -103,7 +103,7 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_OK)
                 .extract().header("Authorization");
 
-//пользователь1 создает счет
+        //пользователь1 создает счет
         acc1Id = given()
                 .contentType(ContentType.JSON)
                 .accept(ContentType.JSON)
@@ -182,6 +182,8 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_OK);
 
         //пользователь1 делает перевод 10000 на свой счет
+        float initialBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
 
         String body3 = String.format("""
                 {
@@ -205,11 +207,16 @@ public class TransferTest {
                 .body("message", Matchers.equalTo("Transfer successful"))
         ;
 
+        float newBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
+        assertEquals(newBalanceAcc1, initialBalanceAcc1-10000.0f, 0.0001f);
+        assertEquals(newBalanceAcc2, initialBalanceAcc2+10000.0f, 0.0001f);
+
     }
 
     @Test
     public void userCanTransferMinSumToTheirOwnAcc() {
-//пользователь1 делает min депозит 0.01 на счет acc1Id
+        //пользователь1 делает min депозит 0.01 на счет acc1Id
         String body1 = String.format("""
                 {
                   "id": %d,
@@ -227,6 +234,8 @@ public class TransferTest {
                 .statusCode(200);
 
         //пользователь1 делает перевод 0.01 на свой счет
+        float initialBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
 
         String body3 = String.format("""
                 {
@@ -247,14 +256,21 @@ public class TransferTest {
                 .body("senderAccountId", Matchers.equalTo(acc1Id))
                 .body("message", Matchers.equalTo("Transfer successful"))
                 .body("amount", Matchers.equalTo(0.01f))
-                .body("receiverAccountId", Matchers.equalTo(acc1_2Id))
-        ;
+                .body("receiverAccountId", Matchers.equalTo(acc1_2Id));
+
+        float newBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
+        assertEquals(newBalanceAcc1, initialBalanceAcc1-0.01f, 0.0001f);
+        assertEquals(newBalanceAcc2, initialBalanceAcc2+0.01f, 0.0001f);
 
     }
 
     @Test
     public void userCanNotTransferSumOverBalanceToTheirOwnAcc() {
         //пользователь1 делает перевод 1000 на свой счет
+
+        float initialBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
 
         String body3 = String.format("""
                 {
@@ -274,11 +290,18 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_BAD_REQUEST)
                 .body(Matchers.equalTo("Invalid transfer: insufficient funds or invalid accounts"));
 
+        float newBalanceAcc1 = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newBalanceAcc2 = GetBalance.getBalance(userAuthHeader, acc1_2Id);
+        assertEquals(newBalanceAcc1, initialBalanceAcc1);
+        assertEquals(newBalanceAcc2, initialBalanceAcc2);
+
     }
 
     @Test
     public void userCanNotTransferSumOverBalanceToAnotherUserAcc() {
         //пользователь1 делает min депозит 0.01 на счет acc1Id
+
+
         String body1 = String.format("""
                 {
                   "id": %d,
@@ -296,6 +319,8 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_OK);
 
         //пользователь1 делает перевод 0.02 на счет пользователя2
+        float initialUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
 
         String body3 = String.format("""
                 {
@@ -315,11 +340,16 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_BAD_REQUEST)
                 .body(Matchers.equalTo("Invalid transfer: insufficient funds or invalid accounts"));
 
+        float newUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+        assertEquals(newUser1Balance, initialUser1Balance);
+        assertEquals(newUser2Balance, initialUser2Balance);
+
     }
 
     @Test
     public void userCanTransferMinSumToAnotherUserAcc() {
-//пользователь1 делает min депозит 0.01 на счет acc1Id
+        //пользователь1 делает min депозит 0.01 на счет acc1Id
         String body1 = String.format("""
                 {
                   "id": %d,
@@ -337,6 +367,8 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_OK);
 
         //пользователь1 делает перевод 0.01 на счет пользователя2
+        float initialUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
 
         String body3 = String.format("""
                 {
@@ -357,8 +389,12 @@ public class TransferTest {
                 .body("amount", Matchers.equalTo(0.01f))
                 .body("senderAccountId", Matchers.equalTo(acc1Id))
                 .body("message", Matchers.equalTo("Transfer successful"))
-                .body("receiverAccountId", Matchers.equalTo(acc2Id))
-        ;
+                .body("receiverAccountId", Matchers.equalTo(acc2Id));
+
+        float newUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+        assertEquals(newUser1Balance, initialUser1Balance-0.01f);
+        assertEquals(newUser2Balance, initialUser2Balance+0.01f);
 
     }
 
@@ -399,6 +435,8 @@ public class TransferTest {
                 .statusCode(HttpStatus.SC_OK);
 
         //пользователь1 делает перевод 10000 на счет пользователя2
+        float initialUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
 
         String body3 = String.format("""
                 {
@@ -421,11 +459,19 @@ public class TransferTest {
                 .body("senderAccountId", Matchers.equalTo(acc1Id))
                 .body("message", Matchers.equalTo("Transfer successful"));
 
+        float newUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+        assertEquals(newUser1Balance, initialUser1Balance-10000.0f, 0.0001f);
+        assertEquals(newUser2Balance, initialUser2Balance+10000.0f, 0.0001f);
+
     }
 
     @Test
     public void userCanNotTransferFromAnotherUserAcc() {
         //пользователь1 делает перевод 10000 себе со счета пользователя2
+
+        float initialUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float initialUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
 
         String body3 = String.format("""
                 {
@@ -444,5 +490,10 @@ public class TransferTest {
                 .assertThat()
                 .statusCode(HttpStatus.SC_FORBIDDEN)
                 .body(Matchers.equalTo("Unauthorized access to account"));
+
+        float newUser1Balance = GetBalance.getBalance(userAuthHeader, acc1Id);
+        float newUser2Balance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+        assertEquals(newUser1Balance, initialUser1Balance);
+        assertEquals(newUser2Balance, initialUser2Balance);
     }
 }

@@ -13,14 +13,15 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DepositTest {
-    private static String username = "cat2025-13";
-    private static String username2 = "Notcat2025-14";
+    private static String username = "cat2025-1";
+    private static String username2 = "Notcat2025-1";
     private static String password = "sTRongPassword33$";
     private static String userAuthHeader;
     private static String user2AuthHeader;
@@ -90,6 +91,8 @@ public class DepositTest {
     public void userCanDepositMaxAmount() {
 
         //пользователь делает max депозит 5000 на счет acc1Id
+        float initialBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
         String body = String.format("""
                 {
                   "id": %d,
@@ -106,22 +109,19 @@ public class DepositTest {
                 .assertThat()
                 .statusCode(HttpStatus.SC_OK);
 
+        float newBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
+        assertEquals(newBalance, initialBalance + 5000.0f, 0.0001f);
+
     }
 
     @Test
     public void userCanDepositMinAmount() {
-        float initialSum = given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .get("http://localhost:4111/api/v1/customer/accounts")
-                .then()
-                .statusCode(200)
-                .extract()
-                .jsonPath()
-                .getFloat("find { it.id == " + acc1Id + " }.balance");
 
         //пользователь делает min депозит 0.01 на счет acc1Id
+
+        float initialBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
         String body = String.format("""
                 {
                   "id": %d,
@@ -138,20 +138,9 @@ public class DepositTest {
                 .assertThat()
                 .statusCode(HttpStatus.SC_OK);
 
-        //проверка суммы на счете acc1Id после депозита
-        float currentSum = given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .get("http://localhost:4111/api/v1/customer/accounts")
-                .then()
-                .statusCode(HttpStatus.SC_OK)
-                .extract()
-                .jsonPath()
-                .getFloat("find { it.id == " + acc1Id + " }.balance");
+        float newBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
 
-        //проверка что сумма увеличилась на 0.01
-        assertEquals(initialSum + 0.01f, currentSum, 0.0001f);
+        assertEquals(newBalance, initialBalance + 0.01f, 0.0001f);
 
     }
 
@@ -165,6 +154,8 @@ public class DepositTest {
     @MethodSource("depositInvalidSumData")
     @ParameterizedTest
     public void userCanNotDepositInvalidSum(float sum) {
+        float initialBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
         String body = String.format("""
                 {
                   "id": %d,
@@ -180,10 +171,15 @@ public class DepositTest {
                 .then()
                 .assertThat()
                 .statusCode(HttpStatus.SC_BAD_REQUEST);
+
+        float newBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
+        assertEquals(newBalance, initialBalance);
     }
 
     @Test
     public void userCanNotDepositIntoNotExistingAcc() {
+        float initialBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
         int notExistingAcc = (int) Math.random() * 10000;
 
         String body = String.format("""
@@ -202,6 +198,10 @@ public class DepositTest {
                 .assertThat()
                 .statusCode(HttpStatus.SC_FORBIDDEN)
                 .body(Matchers.equalTo("Unauthorized access to account"));
+
+        float newBalance = GetBalance.getBalance(userAuthHeader, acc1Id);
+
+        assertEquals(newBalance, initialBalance);
     }
 
     @Test
@@ -257,6 +257,8 @@ public class DepositTest {
 
 
         //пользователь1 пытается положить депозит на счет пользователя2
+        float initialBalance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+
         String body3 = String.format("""
                 {
                   "id": %d,
@@ -273,5 +275,8 @@ public class DepositTest {
                 .assertThat()
                 .statusCode(HttpStatus.SC_FORBIDDEN)
                 .body(Matchers.equalTo("Unauthorized access to account"));
+
+        float newBalance = GetBalance.getBalance(user2AuthHeader, acc2Id);
+        assertEquals(newBalance, initialBalance);
     }
 }
