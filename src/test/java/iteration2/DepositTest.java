@@ -1,131 +1,101 @@
 package iteration2;
 
-import generators.RandomData;
+import io.restassured.specification.ResponseSpecification;
 import models.*;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import requests.AdminCreateUserRequester;
-import requests.LoginUserRequester;
-import requests.UserCreateAccountRequester;
-import requests.UserDepositRequester;
-import specs.RequestSpecs;
 import specs.ResponseSpecs;
 
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class DepositTest extends BaseTest {
 
-    private static String userAuthHeader;
-    private static String userAuthHeader2;
-    private static long acc1Id;
+    private static UserModel user1;
+    private static UserModel user2;
+    private static long user1accId;
     private static long user2accId;
-    private static final float MINDEPOSIT = 0.01f;
-    private static final float MAXDEPOSIT = 5000.0f;
-    private static final float SOMEDEPOSIT = MINDEPOSIT + 0.01f;
 
 
     @BeforeAll
     public static void preSteps() {
 
-        //создание пользователя, получение токена
-        userAuthHeader = UserSteps.createUserAndGetToken().getToken();
+        //создание пользователя1 и счета
+        user1 = UserSteps.createUser();
+        user1accId = UserSteps.createAccount(user1.getToken());
 
-        //пользователь создает счет
-        acc1Id = UserSteps.createAccount(userAuthHeader);
 
-    }
-
-    @Test
-    public void userCanDepositMaxAmount() {
-
-        //пользователь делает max депозит 5000 на счет acc1Id
-        float initialBalance = UserSteps.getAccBalance(userAuthHeader, acc1Id);
-
-        DepositResponse depositResponse = new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.success())
-                .post(DepositFactory.maxDeposit(acc1Id))
-                .extract()
-                .as(DepositResponse.class);
-
-        float newBalance = depositResponse.getBalance();
-
-        softly.assertThat(acc1Id).isEqualTo(depositResponse.getId());
-        softly.assertThat(newBalance).isEqualTo(initialBalance + MAXDEPOSIT);
-        softly.assertThat(depositResponse.getAccountNumber()).isNotNull();
-        softly.assertThat(depositResponse.getTransactions()).isNotNull();
+        //создание пользователя2  и счета
+        user2 = UserSteps.createUser();
+        user2accId = UserSteps.createAccount(user2.getToken());
 
     }
 
-    @Test
-    public void userCanDepositMinAmount() {
-
-        //пользователь делает min депозит 0.01 на счет acc1Id
-        float initialBalance = UserSteps.getAccBalance(userAuthHeader, acc1Id);
-
-        DepositResponse depositResponse = new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.success())
-                .post(DepositFactory.minDeposit(acc1Id))
-                .extract()
-                .as(DepositResponse.class);
-
-        float newBalance = depositResponse.getBalance();
-
-        softly.assertThat(acc1Id).isEqualTo(depositResponse.getId());
-        softly.assertThat(newBalance).isEqualTo(initialBalance + MINDEPOSIT);
-        softly.assertThat(depositResponse.getAccountNumber()).isNotNull();
-        softly.assertThat(depositResponse.getTransactions()).isNotNull();
-
+    @AfterAll
+    public static void deleteUsers() {
+        UserSteps.deleteUsers(user1, user2);
     }
 
-    @Test
-    public void userCanNotDepositInvalidSumLessMin() {
-        new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.badRequestSumLessMin())
-                .post(DepositFactory.belowMin(acc1Id));
-
+    @ParameterizedTest
+    @MethodSource("validDepositsData")
+    public void userCanDeposit(SumValues depositSum) {
+        float initialBalance = UserSteps.getAccBalance(user1.getToken(), user1accId);
+        UserSteps.depositAndAssert(
+                softly, initialBalance,
+                user1.getToken(), user1accId, depositSum);
+    }
+    public static Stream<Arguments> validDepositsData() {
+        return Stream.of(
+                Arguments.of(SumValues.MINDEPOSIT),
+                Arguments.of(SumValues.MAXDEPOSIT)
+        );
     }
 
-    @Test
-    public void userCanNotDepositInvalidSumOverMax() {
-        new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.badRequestSumOverMax())
-                .post(DepositFactory.aboveMax(acc1Id));
+    @ParameterizedTest
+    @MethodSource("invalidDepositsSum")
+    public void userCannotDepositInvalidSum(SumValues sum, ResponseSpecification spec) {
+        UserSteps.deposit(
+                user1.getToken(),
+                user1accId,
+                sum,
+                spec
+        );
+    }
 
+    public static Stream<Arguments> invalidDepositsSum() {
+        return Stream.of(
+                Arguments.of(SumValues.LESSMIN, ResponseSpecs.badRequestSumLessMin()),
+                Arguments.of(SumValues.OVERMAXDEPOSIT, ResponseSpecs.badRequestSumOverMax())
+        );
     }
 
     @Test
     public void userCanNotDepositIntoNotExistingAcc() {
-        int notExistingAcc = (int) Math.random() * 10000;
-
-        DepositRequest depositRequest = DepositRequest.builder()
-                .id(notExistingAcc)
-                .balance(SOMEDEPOSIT)
-                .build();
-
-        new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.unauthorized())
-                .post(depositRequest);
+        long notExistingAcc = (long) (Math.random() * 10000);
+        UserSteps.deposit(
+                user1.getToken(),
+                notExistingAcc,
+                SumValues.SOMEDEPOSIT,
+                ResponseSpecs.unauthorized());
 
     }
 
     @Test
     public void userCanNotDepositIntoAnotherUserAcc() {
-        //создание пользователя2 и получение токена
-        userAuthHeader2 = UserSteps.createUserAndGetToken().getToken();
-
-        //пользователь2 создает счет
-        user2accId = UserSteps.createAccount(userAuthHeader2);
 
         //пользователь1 пытается положить депозит на счет пользователя2
-        new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.unauthorized())
-                .post(DepositFactory.minDeposit(user2accId));
+        UserSteps.deposit(
+                user1.getToken(),
+                user2accId,
+                SumValues.SOMEDEPOSIT,
+                ResponseSpecs.unauthorized());
+
+
     }
 }

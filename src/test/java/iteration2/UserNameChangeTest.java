@@ -2,28 +2,39 @@ package iteration2;
 
 import models.*;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import requests.UpdateUserNameRequester;
+import requesters.sceleton.requests.CrudRequester;
+import requesters.sceleton.requests.Endpoint;
+import requesters.sceleton.requests.ValidatedCrudRequester;
 import specs.RequestSpecs;
 import specs.ResponseSpecs;
 
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class UserNameChangeTest extends BaseTest{
+
+public class UserNameChangeTest extends BaseTest {
     private static UserModel user;
-
 
     @BeforeAll
     public static void preSteps() {
         //создание пользователя
-        user = UserSteps.createUserAndGetToken();
+        user = UserSteps.createUser();
+    }
+
+    @AfterAll
+    public static void deleteUser() {
+        UserSteps.deleteUsers(user);
 
     }
+
 
     public static Stream<Arguments> nameValidData() {
         return Stream.of(
@@ -39,12 +50,11 @@ public class UserNameChangeTest extends BaseTest{
     public void userCanUpdateCustomerProfileWithValidData(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
-        UpdateUserNameResponse updateUserNameResponse = new UpdateUserNameRequester(
+        UpdateUserNameResponse updateUserNameResponse = new ValidatedCrudRequester<UpdateUserNameResponse>(
                 RequestSpecs.authSpec(user.getToken()),
+                Endpoint.NAME,
                 ResponseSpecs.success())
-                .post(updateUserNameRequest)
-                .extract()
-                .as(UpdateUserNameResponse.class);
+                .update(updateUserNameRequest);
 
         softly.assertThat("Profile updated successfully").isEqualTo(updateUserNameResponse.getMessage());
         softly.assertThat(user.getId()).isEqualTo(updateUserNameResponse.getCustomer().getId());
@@ -75,9 +85,10 @@ public class UserNameChangeTest extends BaseTest{
     public void userCanNotUpdateCustomerProfileWithInvalidData(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
-        new UpdateUserNameRequester(RequestSpecs.authSpec(user.getToken()),
+        new CrudRequester(RequestSpecs.authSpec(user.getToken()),
+                Endpoint.NAME,
                 ResponseSpecs.badRequestInvalidUsername())
-                .post(updateUserNameRequest);
+                .update(updateUserNameRequest);
 
     }
 }
