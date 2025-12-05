@@ -17,6 +17,7 @@ import org.openqa.selenium.Alert;
 import java.util.Map;
 
 import static com.codeborne.selenide.Condition.*;
+import static com.codeborne.selenide.Selectors.byAttribute;
 import static com.codeborne.selenide.Selenide.*;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,10 +34,8 @@ public class UserNameChangeUITest {
         Configuration.browser = "chrome";
         Configuration.browserSize = "1928x1080";
 
-
         Configuration.browserCapabilities.setCapability("selenoid:options",
                 Map.of("enableVNC", true, "enableLog", true));
-
     }
 
     @BeforeEach
@@ -55,8 +54,8 @@ public class UserNameChangeUITest {
         Selenide.open("");
 
         //шаг 1. пользователь логинится и переходит на вкладку редактирования профиля
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
 
@@ -66,11 +65,11 @@ public class UserNameChangeUITest {
         $(".user-name").shouldBe(visible).click();
 
         $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(Selectors.byPlaceholder("Enter new name")).shouldBe(visible);
+        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
 
         //шаг 2. пользователь вводит новое имя
-        $(Selectors.byPlaceholder("Enter new name")).setValue(name);
+        $(byAttribute("placeholder", "Enter new name")).setValue(name);
 
         //шаг 3. пользователь нажимает "Save Changes"
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
@@ -86,7 +85,7 @@ public class UserNameChangeUITest {
 
         //шаг 6. проверка, что новое имя отображается на ui
         $(".user-name").shouldBe(visible).shouldHave(text(name));
-        $(Selectors.byPlaceholder("Enter new name")).shouldHave(value(name));
+        $(byAttribute("placeholder", "Enter new name")).shouldHave(value(name));
 
         //шаг 7. Проверка API что имя обновилось в профиле
         String customerName = given()
@@ -116,8 +115,8 @@ public class UserNameChangeUITest {
         Selenide.open("");
 
         //шаг 1. пользователь логинится и переходит на вкладку редактирования профиля
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
 
@@ -127,11 +126,11 @@ public class UserNameChangeUITest {
         $(".user-name").shouldBe(visible).click();
 
         $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(Selectors.byPlaceholder("Enter new name")).shouldBe(visible);
+        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
 
         //шаг 2. пользователь вводит новое имя
-        $(Selectors.byPlaceholder("Enter new name")).setValue(name);
+        $(byAttribute("placeholder", "Enter new name")).setValue(name);
 
         //шаг 3. пользователь нажимает "Save Changes"
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
@@ -164,8 +163,8 @@ public class UserNameChangeUITest {
     public void userCanNotChangeNameWithoutEnterInputTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
 
@@ -175,7 +174,7 @@ public class UserNameChangeUITest {
         $(".user-name").shouldBe(visible).click();
 
         $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(Selectors.byPlaceholder("Enter new name")).shouldBe(visible);
+        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
 
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
@@ -203,8 +202,8 @@ public class UserNameChangeUITest {
     public void userCanNotChangeNameToOnlySpacesTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
 
@@ -214,10 +213,10 @@ public class UserNameChangeUITest {
         $(".user-name").shouldBe(visible).click();
 
         $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(Selectors.byPlaceholder("Enter new name")).shouldBe(visible);
+        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
 
-        $(Selectors.byPlaceholder("Enter new name")).setValue("   ");
+        $(byAttribute("placeholder", "Enter new name")).setValue("   ");
 
         $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
 

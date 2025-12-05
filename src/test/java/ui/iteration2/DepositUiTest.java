@@ -3,7 +3,10 @@ package ui.iteration2;
 import api.iteration2.UserSteps;
 import api.iteration2.models.SumValues;
 import api.iteration2.models.UserModel;
-import com.codeborne.selenide.*;
+import com.codeborne.selenide.Condition;
+import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.Selectors;
+import com.codeborne.selenide.Selenide;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,6 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static com.codeborne.selenide.Condition.*;
+import static com.codeborne.selenide.Selectors.byAttribute;
 import static com.codeborne.selenide.Selenide.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,7 +46,7 @@ public class DepositUiTest {
     @BeforeAll
     public static void createUserAndAccount() {
         user1 = UserSteps.createUser();
-        accId = (int) UserSteps.createAccount(user1.getToken());
+        accId = (int) UserSteps.createAccountAndGetId(user1.getToken());
     }
 
     @ParameterizedTest
@@ -51,8 +55,8 @@ public class DepositUiTest {
         Selenide.open("");
 
         //шаг 1. пользователь логинится и переходит на вкладку Депозит
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
 
@@ -70,7 +74,7 @@ public class DepositUiTest {
         //шаг 3. пользователь указывает сумму депозита
         double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
         String formatted = String.format(Locale.US, "%.2f", amount);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(formatted);
+        $(byAttribute("placeholder", "Enter amount")).setValue(formatted);
 
         //шаг 4. пользователь нажимает кнопку Deposit
         $$("button").findBy(text("Deposit")).click();
@@ -96,8 +100,8 @@ public class DepositUiTest {
     public void UserCanNotDepositLessMinTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
         $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
@@ -111,7 +115,7 @@ public class DepositUiTest {
         $(".form-control.account-selector").selectOption(1);
 
         double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(SumValues.LESSMIN));
+        $(byAttribute("placeholder", "Enter amount")).setValue(String.valueOf(SumValues.LESSMIN));
 
         $$("button").findBy(text("Deposit")).click();
 
@@ -129,8 +133,8 @@ public class DepositUiTest {
     public void UserCanNotDepositOverMaxTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
         $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
@@ -144,7 +148,7 @@ public class DepositUiTest {
         $(".form-control.account-selector").selectOption(1);
 
         double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(5000.01));
+        $(byAttribute("placeholder", "Enter amount")).setValue(String.valueOf(5000.01));
 
         $$("button").findBy(text("Deposit")).click();
 
@@ -162,8 +166,8 @@ public class DepositUiTest {
     public void UserCanNotDepositWithNotSelectedAccountTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
         $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
@@ -175,7 +179,7 @@ public class DepositUiTest {
         $$("button").findBy(text("Deposit")).shouldBe(visible);
 
         double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(1));
+        $(byAttribute("placeholder", "Enter amount")).setValue(String.valueOf(1));
 
         $$("button").findBy(text("Deposit")).click();
 
@@ -192,8 +196,8 @@ public class DepositUiTest {
     public void UserCanNotDepositWithNotSelectedAmountTest() {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
         $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
@@ -230,8 +234,8 @@ public class DepositUiTest {
     public void validationAmountInputTest(String input, String validatedInput) {
         Selenide.open("");
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
+        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
+        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
         $("button").click();
         $(Selectors.byText("User Dashboard")).shouldBe(visible);
         $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
