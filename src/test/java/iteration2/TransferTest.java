@@ -1,13 +1,13 @@
 package iteration2;
 
-import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
-import io.restassured.http.ContentType;
-import org.apache.http.HttpStatus;
-import org.hamcrest.Matchers;
+
+import models.*;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import requests.*;
+import specs.RequestSpecs;
+import specs.ResponseSpecs;
 
 import java.util.List;
 
@@ -24,32 +24,18 @@ public class TransferTest {
     private static int acc1_2Id;
     private static int acc2Id;
 
-    @BeforeAll
-    public static void setUpRestAsuured() {
-        RestAssured.filters(
-                List.of(new RequestLoggingFilter(),
-                        new ResponseLoggingFilter()));
-    }
+    private static UserModel user1;
+    private static UserModel user2;
+    private static long acc1Id;
+    private static long acc1_2Id;
+    private static long acc2Id;
+    private static final float MAXTRANSFER = 10000.0f;
+    private static final float MINTRANSFER = 0.01f;
 
     @BeforeAll
     public static void preSteps() {
         //создание пользователя1
-        String body = String.format("""
-                {
-                   "username": "%s",
-                   "password": "%s",
-                   "role": "USER"
-                    }
-                """, username, password);
-        given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", "Basic YWRtaW46YWRtaW4=")
-                .body(body)
-                .post("http://localhost:4111/api/v1/admin/users")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_CREATED);
+        user1 = UserSteps.createUserAndGetToken();
 
         //создание пользователя2
         String body2 = String.format("""
@@ -117,52 +103,22 @@ public class TransferTest {
                 .getInt("id");
 
         //пользователь1 создает счет2
-        acc1_2Id = given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .post("http://localhost:4111/api/v1/accounts")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_CREATED)
-                .extract()
-                .jsonPath()
-                .getInt("id");
+        acc1_2Id = UserSteps.createAccount(user1.getToken());
 
+        //создание пользователя2
+        user2 = UserSteps.createUserAndGetToken();
 
         //пользователь2 создает счет
-        acc2Id = given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", user2AuthHeader)
-                .post("http://localhost:4111/api/v1/accounts")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_CREATED)
-                .extract()
-                .jsonPath()
-                .getInt("id");
+        acc2Id = UserSteps.createAccount(user2.getToken());
 
     }
 
     @Test
     public void userCanTransferMaxSumToTheirOwnAcc() {
         //пользователь1 делает max депозит 5000 на счет acc1Id
-        String body1 = String.format("""
-                {
-                  "id": %d,
-                  "balance": 5000.0
-                }
-                """, acc1Id);
-        given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .body(body1)
-                .post("http://localhost:4111/api/v1/accounts/deposit")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_OK);
+        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.success())
+                .post(DepositFactory.maxDeposit(acc1Id));
 
         //пользователь1 повторно делает max депозит 5000 на счет acc1Id
         String body2 = String.format("""
@@ -263,6 +219,12 @@ public class TransferTest {
         assertEquals(newBalanceAcc1, initialBalanceAcc1-0.01f, 0.0001f);
         assertEquals(newBalanceAcc2, initialBalanceAcc2+0.01f, 0.0001f);
 
+        float transferAmount = transferResponse.getAmount();
+
+        softly.assertThat(MINTRANSFER).isEqualTo(transferAmount);
+        softly.assertThat("Transfer successful").isEqualTo(transferResponse.getMessage());
+        softly.assertThat(acc1Id).isEqualTo(transferResponse.getSenderAccountId());
+        softly.assertThat(acc1_2Id).isEqualTo(transferResponse.getReceiverAccountId());
     }
 
     @Test
@@ -496,4 +458,36 @@ public class TransferTest {
         assertEquals(newUser1Balance, initialUser1Balance);
         assertEquals(newUser2Balance, initialUser2Balance);
     }
+
+    @Test
+    public void userCanNotTransferOverMaxTransfer(){
+        //пользователь1 делает max депозит 5000 на счет acc1Id
+        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.success())
+                .post(DepositFactory.maxDeposit(acc1Id));
+
+        //пользователь1 повторно делает max депозит 5000 на счет acc1Id
+        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.success())
+                .post(DepositFactory.maxDeposit(acc1Id));
+
+        //пользователь1 делает перевод свыше max
+        new UserTransferRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.badRequestTransferOverMax())
+                .post(TransferFactory.overMaxTransferRequest(acc1Id, acc1_2Id));
+    }
+
+    @Test
+    public void userCanNotTransferLessMinTransfer(){
+        //пользователь1 делает min депозит 0.01 на счет acc1Id
+        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.success())
+                .post(DepositFactory.minDeposit(acc1Id));
+
+        //пользователь1 делает перевод меньше min
+        new UserTransferRequester(RequestSpecs.authSpec(user1.getToken()),
+                ResponseSpecs.badRequestTransferLessMin())
+                .post(TransferFactory.belowMinTransferRequest(acc1Id, acc1_2Id));
+    }
+
 }

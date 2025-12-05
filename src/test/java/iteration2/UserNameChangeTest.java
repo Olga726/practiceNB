@@ -1,17 +1,16 @@
 package iteration2;
 
-import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
-import io.restassured.http.ContentType;
-import org.apache.http.HttpStatus;
-import org.hamcrest.Matchers;
+import models.*;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.List;
+import requests.UpdateUserNameRequester;
+import specs.RequestSpecs;
+import specs.ResponseSpecs;
+
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
@@ -47,40 +46,8 @@ public class UserNameChangeTest {
 
     @BeforeAll
     public static void preSteps() {
-        //создание пользователя1
-        String body = String.format("""
-                {
-                   "username": "%s",
-                   "password": "%s",
-                   "role": "USER"
-                    }
-                """, username, password);
-        given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", "Basic YWRtaW46YWRtaW4=")
-                .body(body)
-                .post("http://localhost:4111/api/v1/admin/users")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_CREATED);
-
-        //аутентификация пользователя1
-        String body3 = String.format("""
-                {
-                   "username": "%s",
-                   "password": "%s"
-                    }
-                """, username, password);
-        userAuthHeader = given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .body(body3)
-                .post("http://localhost:4111/api/v1/auth/login")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .extract().header("Authorization");
+        //создание пользователя
+        user = UserSteps.createUserAndGetToken();
 
     }
 
@@ -118,6 +85,7 @@ public class UserNameChangeTest {
 
         assertNotEquals(initialName, updatedName);
     }
+
 
     public static Stream<Arguments> nameInvalidData() {
         return Stream.of(
