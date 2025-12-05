@@ -1,19 +1,17 @@
 package api.iteration2;
 
-import api.iteration2.generators.RandomEntityGenerator;
+import generators.RandomEntityGenerator;
 import api.iteration2.models.*;
-import api.iteration2.models.Account;
-import api.iteration2.models.AuthUserRequest;
-import api.iteration2.models.CreateUserRequest;
-import api.iteration2.models.UserModel;
 import io.restassured.specification.ResponseSpecification;
+import models.*;
 
 import org.assertj.core.api.SoftAssertions;
 import requesters.sceleton.requests.CrudRequester;
 import requesters.sceleton.requests.Endpoint;
 import requesters.sceleton.requests.ValidatedCrudRequester;
-import api.iteration2.specs.RequestSpecs;
-import api.iteration2.specs.ResponseSpecs;
+import specs.RequestSpecs;
+import specs.ResponseSpecs;
+import org.apache.http.HttpStatus;
 
 import java.util.List;
 
@@ -58,17 +56,6 @@ public class UserSteps {
                 .extract()
                 .jsonPath()
                 .getInt("id");
-    }
-
-    public static Account createAccount(String token) {
-        return new CrudRequester(
-                RequestSpecs.authSpec(token),
-                Endpoint.ACCOUNTS,
-                ResponseSpecs.entityWasCreated())
-                .post(null)
-                .extract()
-                .as(Account.class);
-
     }
 
     public static float getAccBalance(String token, long accId) {
@@ -225,26 +212,40 @@ public class UserSteps {
         }
     }
 
-    public static String setAndGetName(String name, String token){
+    public static String getCustomerName(UserModel user) {
         return given()
-                .spec(RequestSpecs.authSpec(token))
+                .spec(RequestSpecs.authSpec(user.getToken()))
+                .get("http://localhost:4111/api/v1/customer/profile")
+                .then().assertThat()
+                .statusCode(HttpStatus.SC_OK)
+                .extract()
+                .path("name");
+    }
+
+    public static Account createAccount(UserModel user){
+        return given()
+                .spec(RequestSpecs.authSpec(user.getToken()))
+                .post("http://localhost:4111/api/v1/accounts")
+                .then().assertThat()
+                .statusCode(201)
+                .extract()
+                .as(Account.class);
+    }
+
+    public static String setCustomerName (UserModel user, String name){
+        return given()
+                .spec(RequestSpecs.authSpec(user.getToken()))
                 .body(String.format("""
-                        {
+                    {
                         "name": "%s"
-                        }
-                        """, name
-                ))
+                    }
+                    """, name))
                 .put("http://localhost:4111/api/v1/customer/profile")
                 .then().assertThat()
                 .statusCode(200)
                 .extract()
                 .path("customer.name");
-
     }
+
 }
-
-
-
-
-
 
