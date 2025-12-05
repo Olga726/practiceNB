@@ -1,17 +1,23 @@
-package iteration2;
+package api.iteration2;
 
-import generators.RandomEntityGenerator;
+import api.iteration2.generators.RandomEntityGenerator;
+import api.iteration2.models.*;
+import api.iteration2.models.Account;
+import api.iteration2.models.AuthUserRequest;
+import api.iteration2.models.CreateUserRequest;
+import api.iteration2.models.UserModel;
 import io.restassured.specification.ResponseSpecification;
-import models.*;
+
 import org.assertj.core.api.SoftAssertions;
 import requesters.sceleton.requests.CrudRequester;
 import requesters.sceleton.requests.Endpoint;
 import requesters.sceleton.requests.ValidatedCrudRequester;
-import specs.RequestSpecs;
-import specs.ResponseSpecs;
+import api.iteration2.specs.RequestSpecs;
+import api.iteration2.specs.ResponseSpecs;
 
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -43,7 +49,7 @@ public class UserSteps {
     }
 
 
-    public static long createAccount(String token) {
+    public static long createAccountAndGetId(String token) {
         return new CrudRequester(
                 RequestSpecs.authSpec(token),
                 Endpoint.ACCOUNTS,
@@ -52,6 +58,17 @@ public class UserSteps {
                 .extract()
                 .jsonPath()
                 .getInt("id");
+    }
+
+    public static Account createAccount(String token) {
+        return new CrudRequester(
+                RequestSpecs.authSpec(token),
+                Endpoint.ACCOUNTS,
+                ResponseSpecs.entityWasCreated())
+                .post(null)
+                .extract()
+                .as(Account.class);
+
     }
 
     public static float getAccBalance(String token, long accId) {
@@ -208,6 +225,26 @@ public class UserSteps {
         }
     }
 
+    public static String setAndGetName(String name, String token){
+        return given()
+                .spec(RequestSpecs.authSpec(token))
+                .body(String.format("""
+                        {
+                        "name": "%s"
+                        }
+                        """, name
+                ))
+                .put("http://localhost:4111/api/v1/customer/profile")
+                .then().assertThat()
+                .statusCode(200)
+                .extract()
+                .path("customer.name");
 
+    }
 }
+
+
+
+
+
 
