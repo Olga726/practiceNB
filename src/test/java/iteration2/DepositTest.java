@@ -1,17 +1,13 @@
 package iteration2;
 
-import generators.RandomData;
+import io.restassured.specification.ResponseSpecification;
 import models.*;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import requests.AdminCreateUserRequester;
-import requests.LoginUserRequester;
-import requests.UserCreateAccountRequester;
-import requests.UserDepositRequester;
-import specs.RequestSpecs;
 import specs.ResponseSpecs;
 
 import java.util.List;
@@ -19,8 +15,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class DepositTest extends BaseTest {
 
@@ -32,19 +27,15 @@ public class DepositTest {
     private static String userAuthHeader2;
     private static long acc1Id;
     private static long user2accId;
-    private static final float MINDEPOSIT = 0.01f;
-    private static final float MAXDEPOSIT = 5000.0f;
-    private static final float SOMEDEPOSIT = MINDEPOSIT + 0.01f;
 
 
     @BeforeAll
     public static void preSteps() {
 
-        //создание пользователя, получение токена
-        userAuthHeader = UserSteps.createUserAndGetToken().getToken();
+        //создание пользователя1 и счета
+        user1 = UserSteps.createUser();
+        user1accId = UserSteps.createAccount(user1.getToken());
 
-        //пользователь создает счет
-        acc1Id = UserSteps.createAccount(userAuthHeader);
 
     }
 
@@ -105,12 +96,19 @@ public class DepositTest {
 
     }
 
-    @Test
-    public void userCanNotDepositInvalidSumLessMin() {
-        new UserDepositRequester(RequestSpecs.authSpec(userAuthHeader),
-                ResponseSpecs.badRequestSumLessMin())
-                .post(DepositFactory.belowMin(acc1Id));
-
+    @ParameterizedTest
+    @MethodSource("validDepositsData")
+    public void userCanDeposit(SumValues depositSum) {
+        float initialBalance = UserSteps.getAccBalance(user1.getToken(), user1accId);
+        UserSteps.depositAndAssert(
+                softly, initialBalance,
+                user1.getToken(), user1accId, depositSum);
+    }
+    public static Stream<Arguments> validDepositsData() {
+        return Stream.of(
+                Arguments.of(SumValues.MINDEPOSIT),
+                Arguments.of(SumValues.MAXDEPOSIT)
+        );
     }
 
     @MethodSource("depositInvalidSumData")
@@ -168,11 +166,6 @@ public class DepositTest {
 
     @Test
     public void userCanNotDepositIntoAnotherUserAcc() {
-        //создание пользователя2 и получение токена
-        userAuthHeader2 = UserSteps.createUserAndGetToken().getToken();
-
-        //пользователь2 создает счет
-        user2accId = UserSteps.createAccount(userAuthHeader2);
 
         //пользователь1 пытается положить депозит на счет пользователя2
         float initialBalance = GetBalance.getBalance(user2AuthHeader, acc2Id);

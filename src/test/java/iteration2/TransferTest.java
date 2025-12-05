@@ -1,11 +1,16 @@
 package iteration2;
 
 
+import io.restassured.specification.ResponseSpecification;
 import models.*;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import requests.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import requesters.sceleton.requests.Endpoint;
+import requesters.sceleton.requests.ValidatedCrudRequester;
 import specs.RequestSpecs;
 import specs.ResponseSpecs;
 
@@ -32,10 +37,6 @@ public class TransferTest {
     private static final float MAXTRANSFER = 10000.0f;
     private static final float MINTRANSFER = 0.01f;
 
-    @BeforeAll
-    public static void preSteps() {
-        //создание пользователя1
-        user1 = UserSteps.createUserAndGetToken();
 
         //создание пользователя2
         String body2 = String.format("""
@@ -102,23 +103,28 @@ public class TransferTest {
                 .jsonPath()
                 .getInt("id");
 
-        //пользователь1 создает счет2
-        acc1_2Id = UserSteps.createAccount(user1.getToken());
+    private UserModel user1;
+    private UserModel user2;
+    private long user1acc1Id;
+    private long user1acc2Id;
+    private long user2acc1Id;
 
-        //создание пользователя2
-        user2 = UserSteps.createUserAndGetToken();
+    @BeforeEach
+    public void preSteps() {
+        //создание пользователя1 и счетов
+        user1 = UserSteps.createUser();
+        user1acc1Id = UserSteps.createAccount(user1.getToken());
+        user1acc2Id = UserSteps.createAccount(user1.getToken());
 
-        //пользователь2 создает счет
-        acc2Id = UserSteps.createAccount(user2.getToken());
+        //создание пользователя2 и счета
+        user2 = UserSteps.createUser();
+        user2acc1Id = UserSteps.createAccount(user2.getToken());
 
     }
 
-    @Test
-    public void userCanTransferMaxSumToTheirOwnAcc() {
-        //пользователь1 делает max депозит 5000 на счет acc1Id
-        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.success())
-                .post(DepositFactory.maxDeposit(acc1Id));
+    @AfterEach
+    public void deleteUsers(){
+        long[] ids = {user1.getId(), user2.getId()};
 
         //пользователь1 повторно делает max депозит 5000 на счет acc1Id
         String body2 = String.format("""
@@ -168,6 +174,7 @@ public class TransferTest {
         assertEquals(newBalanceAcc1, initialBalanceAcc1-10000.0f, 0.0001f);
         assertEquals(newBalanceAcc2, initialBalanceAcc2+10000.0f, 0.0001f);
 
+        }
     }
 
     @Test
@@ -257,6 +264,15 @@ public class TransferTest {
         assertEquals(newBalanceAcc1, initialBalanceAcc1);
         assertEquals(newBalanceAcc2, initialBalanceAcc2);
 
+    //минимальный и максимальный перевод на чужой счет
+    @ParameterizedTest
+    @CsvSource({
+            "MINDEPOSIT, MINTRANSFER",
+            "MAXDEPOSIT, MAXTRANSFER"
+    })
+    public void userCanTransferToAnotherUserAccount(SumValues depositSum, SumValues transferSum){
+        UserSteps.depositNTimes(user1.getToken(), user1acc1Id, depositSum, 2);     //2 раза депозит
+        UserSteps.transferAndAssert(softly, user1.getToken(), user1acc1Id, user2acc1Id, transferSum);
     }
 
     @Test
@@ -307,6 +323,14 @@ public class TransferTest {
         assertEquals(newUser1Balance, initialUser1Balance);
         assertEquals(newUser2Balance, initialUser2Balance);
 
+    @Test
+    public void userCanNotTransferFromAnotherUserAcc() {
+        //пользователь2 делает перевод 10000 себе со счета пользователя1
+        UserSteps.transferErrorResponse(
+                user2.getToken(),
+                user1acc1Id, user2acc1Id,
+                SumValues.MAXTRANSFER,
+                ResponseSpecs.unauthorized());
     }
 
     @Test
@@ -426,7 +450,10 @@ public class TransferTest {
         assertEquals(newUser1Balance, initialUser1Balance-10000.0f, 0.0001f);
         assertEquals(newUser2Balance, initialUser2Balance+10000.0f, 0.0001f);
 
-    }
+    @ParameterizedTest
+    @MethodSource("transferInvalidData")
+    public void userCanNotTransferOverMaxOrLessMin(SumValues depositSum, SumValues transferSum, ResponseSpecification spec){
+        UserSteps.depositNTimes(user1.getToken(), user1acc1Id, depositSum, 3);
 
     @Test
     public void userCanNotTransferFromAnotherUserAcc() {
@@ -459,35 +486,30 @@ public class TransferTest {
         assertEquals(newUser2Balance, initialUser2Balance);
     }
 
-    @Test
-    public void userCanNotTransferOverMaxTransfer(){
-        //пользователь1 делает max депозит 5000 на счет acc1Id
-        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.success())
-                .post(DepositFactory.maxDeposit(acc1Id));
 
-        //пользователь1 повторно делает max депозит 5000 на счет acc1Id
-        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.success())
-                .post(DepositFactory.maxDeposit(acc1Id));
+    @ParameterizedTest
+    @MethodSource("overBalanceData")
+    public void userCanNotTransferOverBalance(String type) {
+        String token = user1.getToken();
+        long fromAcc = user1acc1Id;
+        long toAcc;
 
-        //пользователь1 делает перевод свыше max
-        new UserTransferRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.badRequestTransferOverMax())
-                .post(TransferFactory.overMaxTransferRequest(acc1Id, acc1_2Id));
+        if(type.equals("SELF")){
+            toAcc = user1acc2Id;
+        } else {
+            toAcc = user2acc1Id;
+        }
+        UserSteps.transferErrorResponse(
+                token, fromAcc, toAcc,
+                SumValues.MAXTRANSFER,
+                ResponseSpecs.badRequestNotEnoughAmount());
+    }
+    public static Stream<Arguments> overBalanceData() {
+        return Stream.of(
+                Arguments.of("SELF"), // на свой счёт
+                Arguments.of("OTHER")    // на чужой счёт
+        );
     }
 
-    @Test
-    public void userCanNotTransferLessMinTransfer(){
-        //пользователь1 делает min депозит 0.01 на счет acc1Id
-        new UserDepositRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.success())
-                .post(DepositFactory.minDeposit(acc1Id));
-
-        //пользователь1 делает перевод меньше min
-        new UserTransferRequester(RequestSpecs.authSpec(user1.getToken()),
-                ResponseSpecs.badRequestTransferLessMin())
-                .post(TransferFactory.belowMinTransferRequest(acc1Id, acc1_2Id));
-    }
 
 }

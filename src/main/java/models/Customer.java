@@ -13,9 +13,9 @@ import java.util.List;
 @Builder
 public class Customer extends BaseModel{
     private long id;
+    private String username;
     private String password;
     private String name;
-    private String username;
     private Role role;
     private List<Account> accounts;
 }
