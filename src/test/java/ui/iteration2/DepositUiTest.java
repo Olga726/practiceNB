@@ -1,221 +1,111 @@
 package ui.iteration2;
 
 import api.iteration2.UserSteps;
+import api.iteration2.models.Account;
 import api.iteration2.models.SumValues;
 import api.iteration2.models.UserModel;
-import com.codeborne.selenide.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openqa.selenium.Alert;
+
+import ui.iteration2.pages.AlertMessages;
+import ui.iteration2.pages.DashboardPage;
+import ui.iteration2.pages.DepositPage;
 
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Locale;
-import java.util.Map;
+
 
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.*;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DepositUiTest {
+public class DepositUiTest extends BaseUiTest {
     private static UserModel user1;
-    private static int accId;
+    private static int user1acc1Id;
+    private static String user1acc1Number;
 
-    @BeforeAll
-    public static void setupSelenoid() {
-        Configuration.remote = "http://localhost:4444/wd/hub";
-        Configuration.baseUrl = "http://192.168.1.51";
-        Configuration.browser = "chrome";
-        Configuration.browserSize = "1928x1080";
-
-
-        Configuration.browserCapabilities.setCapability("selenoid:options",
-                Map.of("enableVNC", true, "enableLog", true));
-
-    }
 
     @BeforeAll
     public static void createUserAndAccount() {
         user1 = UserSteps.createUser();
-        accId = (int) UserSteps.createAccount(user1.getToken());
+        Account user1acc1 = UserSteps.createAccount(user1);
+        user1acc1Id = (int) user1acc1.getId();
+        user1acc1Number = user1acc1.getAccountNumber();
     }
 
     @ParameterizedTest
     @ValueSource(doubles = {0.01, 5000.00})
     public void userCanDepositMaxOrMinTest(double amount) {
-        Selenide.open("");
 
-        //шаг 1. пользователь логинится и переходит на вкладку Депозит
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
+        double initialSum = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
 
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
+        authAsUser(user1.getUsername(), user1.getPassword());
+        new DepositPage().open()
+                .deposit(user1acc1Number, String.format(Locale.US, "%.2f", amount))
+                .checkAlertAndConfirm(AlertMessages.SUCCESSFULLY_DEPOSITED)
+                .getPage(DashboardPage.class);
 
-        $(".form-control.account-selector option:checked")
-                .shouldHave(Condition.text("-- Choose an account --"));
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        //шаг 2. пользователь выбирает счет
-        $(".form-control.account-selector").selectOption(1);
-
-        //шаг 3. пользователь указывает сумму депозита
-        double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        String formatted = String.format(Locale.US, "%.2f", amount);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(formatted);
-
-        //шаг 4. пользователь нажимает кнопку Deposit
-        $$("button").findBy(text("Deposit")).click();
-
-        //шаг 5. проверка алерта
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Successfully deposited");
-        alert.accept();
-
-        //шаг 6. проверка, что после закрытия алерта пользователь на вкладке User Dashboard
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-
-        //шаг 7. API проверка, что баланс счета изменился на сумму депозита
-        double finalSumAcc1 = UserSteps.getAccBalance(user1.getToken(), accId);
-        BigDecimal balance = BigDecimal.valueOf(finalSumAcc1)
+        //API проверка, что баланс счета изменился на сумму депозита
+        BigDecimal balance = BigDecimal.valueOf(UserSteps.getAccBalance(user1.getToken(), user1acc1Id))
                 .setScale(2, RoundingMode.HALF_UP);
-        double rounded = balance.doubleValue();
-        assertEquals(initialSum + amount, rounded, 0.0001f);
+        assertEquals(initialSum + amount, balance.doubleValue(), 0.0001f);
 
     }
 
     @Test
     public void UserCanNotDepositLessMinTest() {
-        Selenide.open("");
+        authAsUser(user1.getUsername(), user1.getPassword());
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
+        double initialSum = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
+        new DepositPage().open().deposit(user1acc1Number, String.valueOf(SumValues.LESSMIN))
+                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_AMOUNT)
+                .getPage(DepositPage.class);
 
-        $(".form-control.account-selector option:checked")
-                .shouldHave(Condition.text("-- Choose an account --"));
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        $(".form-control.account-selector").selectOption(1);
-
-        double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(SumValues.LESSMIN));
-
-        $$("button").findBy(text("Deposit")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please enter a valid amount.");
-        alert.accept();
-
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), accId), 0.0001);
+        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001);
 
     }
 
     @Test
     public void UserCanNotDepositOverMaxTest() {
-        Selenide.open("");
+        authAsUser(user1.getUsername(), user1.getPassword());
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
+        double initialSum = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
+        new DepositPage().open().deposit(user1acc1Number, String.valueOf(5000.01))
+                .checkAlertAndConfirm(AlertMessages.DEPOSIT_LESS)
+                .getPage(DepositPage.class);
 
-        $(".form-control.account-selector option:checked")
-                .shouldHave(Condition.text("-- Choose an account --"));
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        $(".form-control.account-selector").selectOption(1);
-
-        double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(5000.01));
-
-        $$("button").findBy(text("Deposit")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please deposit less or equal to 5000$.");
-        alert.accept();
-
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), accId), 0.0001);
+        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001);
 
     }
 
     @Test
     public void UserCanNotDepositWithNotSelectedAccountTest() {
-        Selenide.open("");
+        authAsUser(user1.getUsername(), user1.getPassword());
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
+        double initialSum = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
+        new DepositPage().open().deposit("Choose an account", String.valueOf(SumValues.SOMEDEPOSIT))
+                .checkAlertAndConfirm(AlertMessages.SELECT_ACCOUNT)
+                .getPage(DepositPage.class);
 
-        $(".form-control.account-selector option:checked")
-                .shouldHave(Condition.text("-- Choose an account --"));
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-        $(Selectors.byPlaceholder("Enter amount")).setValue(String.valueOf(1));
-
-        $$("button").findBy(text("Deposit")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please select an account.");
-        alert.accept();
-
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), accId), 0.0001);
+        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001);
     }
 
     @Test
     public void UserCanNotDepositWithNotSelectedAmountTest() {
-        Selenide.open("");
+        authAsUser(user1.getUsername(), user1.getPassword());
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
+        double initialSum = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
 
-        $(".form-control.account-selector option:checked")
-                .shouldHave(Condition.text("-- Choose an account --"));
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
+        new DepositPage().open().deposit(user1acc1Number, "")
+                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_AMOUNT)
+                .getPage(DepositPage.class);
 
-        $(".form-control.account-selector").selectOption(1);
-
-        double initialSum = UserSteps.getAccBalance(user1.getToken(), accId);
-
-        $$("button").findBy(text("Deposit")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please enter a valid amount.");
-        alert.accept();
-        $$("button").findBy(text("Deposit")).shouldBe(visible);
-
-        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), accId), 0.0001);
+        assertEquals(initialSum, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001);
     }
 
     @ParameterizedTest
@@ -228,17 +118,9 @@ public class DepositUiTest {
             "-1, 0.01"
     })
     public void validationAmountInputTest(String input, String validatedInput) {
-        Selenide.open("");
+        authAsUser(user1.getUsername(), user1.getPassword());
 
-        $(Selectors.byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(Selectors.byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-        $(Selectors.byText("\uD83D\uDCB0 Deposit Money")).shouldBe(visible);
-        $$("button").findBy(text("💰 Deposit Money")).click();
-
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldBe(visible);
-        $x("//input[contains(@placeholder,'Enter amount')]").setValue(input);
+        new DepositPage().open().setAmount(input);
         $x("//input[contains(@placeholder,'Enter amount')]").shouldHave(exactValue(validatedInput));
 
 
