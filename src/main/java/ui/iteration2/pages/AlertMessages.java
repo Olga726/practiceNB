@@ -19,11 +19,15 @@ public enum AlertMessages {
     RECIPIENT_NAME_DOES_NOT_MATCH("The recipient name does not match the registered name."),
     NO_USER_FOUNT_WITH_THIS_ACCOUNT_NUMBER("No user found with this account number."),
     PLEASE_FILL_ALL_FIELDS_AND_CONFIRM("Please fill all fields and confirm."),
-    TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO("successful from Account");
+    TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO("Transfer of $%s successful from Account %s to %s!");
 
     private final String message;
 
     AlertMessages(String message) {
         this.message = message;
+    }
+
+    public String format(Object... args) {
+        return String.format(message, args);
     }
 }

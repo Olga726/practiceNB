@@ -5,9 +5,9 @@ import api.iteration2.models.*;
 import io.restassured.specification.ResponseSpecification;
 import org.apache.hc.core5.http.HttpStatus;
 import org.assertj.core.api.SoftAssertions;
-import api.iteration2.sceleton.requests.CrudRequester;
-import api.iteration2.sceleton.requests.Endpoint;
-import api.iteration2.sceleton.requests.ValidatedCrudRequester;
+import requesters.sceleton.requests.CrudRequester;
+import requesters.sceleton.requests.Endpoint;
+import requesters.sceleton.requests.ValidatedCrudRequester;
 import api.iteration2.specs.RequestSpecs;
 import api.iteration2.specs.ResponseSpecs;
 

@@ -39,4 +39,11 @@ public abstract class BasePage<T extends BasePage> {
         amountInput.setValue(amount);
         return (T) this;
     }
+
+    public T checkAlertWithArgsAndConfirm(AlertMessages message, Object... args){
+        Alert alert = switchTo().alert();
+        assertThat(alert.getText()).contains(message.format(args));
+        alert.accept();
+        return (T) this;
+    }
 }

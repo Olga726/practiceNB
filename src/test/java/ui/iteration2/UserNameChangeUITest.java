@@ -45,7 +45,7 @@ public class UserNameChangeUITest extends BaseUiTest {
         dashboard.getUserName().shouldHave(Condition.text("Noname"));
         dashboard.getUserUserName().shouldHave(Condition.text(user1.getUsername()));
 
-        EditProfilePage editProfilePage =dashboard.openEditProfile().getPage(EditProfilePage.class);
+        EditProfilePage editProfilePage = dashboard.openEditProfile().getPage(EditProfilePage.class);
         editProfilePage.editProfile(name)
                 .checkAlertAndConfirm(AlertMessages.NAME_UPDATED_SUCCESSFULLY);
 
@@ -71,11 +71,9 @@ public class UserNameChangeUITest extends BaseUiTest {
     })
     public void userCanNotChangeNameWithInvalidDataTest(String name) {
         authAsUser(user1.getUsername(), user1.getPassword());
-
         EditProfilePage editProfilePage = new EditProfilePage().open()
                 .editProfile(name)
                 .checkAlertAndConfirm(AlertMessages.NAME_INVALID);
-
         refresh();
 
         //проверка, что старое имя Noname отображается на ui
@@ -90,7 +88,6 @@ public class UserNameChangeUITest extends BaseUiTest {
     public void userCanNotChangeNonameWithoutEnterInputTest() {
         //проверка если было noname
         authAsUser(user1.getUsername(), user1.getPassword());
-
         EditProfilePage editProfilePage = new EditProfilePage().open().clickButton()
                 .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME);
         refresh();
