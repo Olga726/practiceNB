@@ -36,8 +36,6 @@ public class TransferUiTest extends BaseUiTest {
     private String user2acc1Number;
     private int user1acc2Id;
 
-
-
     @BeforeEach
     public void createUserAndAccount() {
         user1 = UserSteps.createUser();
@@ -56,7 +54,6 @@ public class TransferUiTest extends BaseUiTest {
         Account user2acc1 = UserSteps.createAccount(user2);
         user2acc1Id = (int) user2acc1.getId();
         user2acc1Number = user2acc1.getAccountNumber();
-
     }
 
     @ParameterizedTest
@@ -101,7 +98,6 @@ public class TransferUiTest extends BaseUiTest {
         assertEquals(initialSumUser2Acc1 + Double.parseDouble(sum), user2Acc1balance.doubleValue(), 0.0001f);
     }
 
-
     @ParameterizedTest
     @CsvSource({
             "10000.0000000000000000001, 10000.00",
@@ -110,15 +106,12 @@ public class TransferUiTest extends BaseUiTest {
             "'10000.01', 10000.00",
             "5.000e3, 0.01",
             "-1, 0.01"
-
     })
     public void transferAmountUiValidationTest(String inputValue, String validatedInputValue) {
         authAsUser(user1.getUsername(), user1.getPassword());
-
        new TransferPage().open()
                .setAmount(inputValue)
                .getAmountInput().shouldHave(exactValue(validatedInputValue));
-
     }
 
     @ParameterizedTest
@@ -127,7 +120,6 @@ public class TransferUiTest extends BaseUiTest {
             "10000.00"
     })
     public void userCanTransferToOwnAccTest(String sum) {
-
         double initialSumAcc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumAcc2 = UserSteps.getAccBalance(user1.getToken(), user1acc2Id);
 
@@ -140,7 +132,6 @@ public class TransferUiTest extends BaseUiTest {
         String formattedSumAcc1 = String.format(Locale.US, "%.2f", UserSteps.getAccBalance(user1.getToken(), user1acc1Id));
         String formattedSumAcc2 = String.format(Locale.US, "%.2f", UserSteps.getAccBalance(user1.getToken(), user1acc2Id));
 
-
         SelenideElement accUser1Selector = new TransferPage().open()
                 .getAccountSelector();
         accUser1Selector.$$("option")
@@ -149,7 +140,6 @@ public class TransferUiTest extends BaseUiTest {
         accUser1Selector.$$("option")
                 .findBy(Condition.text(user1acc2Number + " (Balance: $" + formattedSumAcc2 + ")"))
                 .should(Condition.exist);
-
 
         //проверка изменений сумм на счетах
         BigDecimal user1Acc1balance = BigDecimal.valueOf(UserSteps.getAccBalance(user1.getToken(), user1acc1Id))
@@ -163,7 +153,6 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferLessMinToAnotherUserAccTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -174,7 +163,6 @@ public class TransferUiTest extends BaseUiTest {
         new TransferPage().open().getPage(TransferPage.class)
                 .transferAmount(user1acc1Number, user2Name, user2acc1Number, String.valueOf(0.00))
                 .checkAlertAndConfirm(AlertMessages.TRANSFER_MUST_BE_AT_LEAST).getPage(TransferPage.class);
-
 
         //после обновления страницы балансы на ui не поменялись
         SelenideElement accUser1Selector = new TransferPage().open()
@@ -190,7 +178,6 @@ public class TransferUiTest extends BaseUiTest {
                 .findBy(Condition.text(user2acc1Number + " (Balance: $" + formattedSumUser2Acc1 + ")"))
                 .should(Condition.exist);
 
-
         //проверка отсуствия изменений сумм на счетах
         BigDecimal user1Acc1balance = BigDecimal.valueOf(UserSteps.getAccBalance(user1.getToken(), user1acc1Id))
                 .setScale(2, RoundingMode.HALF_UP);
@@ -199,12 +186,10 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(initialSumUser1Acc1, user1Acc1balance.doubleValue(), 0.0001f);
         assertEquals(initialSumUser2Acc1, user2Acc1balance.doubleValue(), 0.0001f);
-
     }
 
     @Test
     public void userCanNotTransferOverMaxToAnotherUserAccTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -217,7 +202,6 @@ public class TransferUiTest extends BaseUiTest {
                 .checkAlertAndConfirm(AlertMessages.TRANSFER_AMOUNT_CANNOT_EXCEED)
                 .getPage(TransferPage.class);
 
-
         //после обновления страницы балансы на ui не поменялись
         SelenideElement accUser1Selector = new TransferPage().open()
                 .getAccountSelector();
@@ -240,24 +224,20 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(initialSumUser1Acc1, user1Acc1balance.doubleValue(), 0.0001f);
         assertEquals(initialSumUser2Acc1, user2Acc1balance.doubleValue(), 0.0001f);
-
     }
 
     @Test
     public void userCanTransferToSameAccTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
-        String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
 
         authAsUser(user1.getUsername(), user1.getPassword());
-
         new TransferPage().open().getPage(TransferPage.class)
                 .transferAmount(user1acc1Number, user1Name, user1acc1Number, String.valueOf(10000.00))
                 .checkAlertAndConfirm(AlertMessages.SUCCESSFULLY_TRANSFERED)
                 .getPage(TransferPage.class);
 
-
         //после обновления страницы баланс на ui не поменялся
+        String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
         SelenideElement accUser1Selector = new TransferPage().open()
                 .getAccountSelector();
         accUser1Selector.$$("option")
@@ -267,14 +247,11 @@ public class TransferUiTest extends BaseUiTest {
         //проверка отсутствия изменений суммы на счете
         BigDecimal user1Acc1balance = BigDecimal.valueOf(UserSteps.getAccBalance(user1.getToken(), user1acc1Id))
                 .setScale(2, RoundingMode.HALF_UP);
-
         assertEquals(initialSumUser1Acc1, user1Acc1balance.doubleValue(), 0.0001f);
-
     }
 
     @Test
     public void userCanNotTransferOverBalanceTest() {
-
         authAsUser(user1.getUsername(), user1.getPassword());
 
         new TransferPage().open().getPage(TransferPage.class)
@@ -286,26 +263,23 @@ public class TransferUiTest extends BaseUiTest {
                 .getPage(TransferPage.class);
 
 
-        //после обновления страницы балансы на ui не поменялись (по сравнениюс балансами после первого перевода)
+        //после обновления страницы балансы на ui не поменялись (по сравнению с балансами после первого перевода)
         double finalSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double finalSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
 
         String formattedFinalSumUser1Acc1 = String.format(Locale.US, "%.2f", finalSumUser1Acc1);
         String formattedFinalSumUser2Acc1 = String.format(Locale.US, "%.2f", finalSumUser2Acc1);
 
-        SelenideElement accUser1Selector = new TransferPage().open()
-                .getAccountSelector();
+        SelenideElement accUser1Selector = new TransferPage().open().getAccountSelector();
         accUser1Selector.$$("option")
                 .findBy(Condition.text(user1acc1Number + " (Balance: $" + formattedFinalSumUser1Acc1 + ")"))
                 .should(Condition.exist);
 
         authAsUser(user2.getUsername(), user2.getPassword());
-        SelenideElement accUser2Selector = new TransferPage().open()
-                .getAccountSelector();
+        SelenideElement accUser2Selector = new TransferPage().open().getAccountSelector();
         accUser2Selector.$$("option")
                 .findBy(Condition.text(user2acc1Number + " (Balance: $" + formattedFinalSumUser2Acc1 + ")"))
                 .should(Condition.exist);
-
 
         //проверка отсутствия изменений сумм на счетах
         BigDecimal user1Acc1balance = BigDecimal.valueOf(UserSteps.getAccBalance(user1.getToken(), user1acc1Id))
@@ -315,19 +289,16 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(finalSumUser1Acc1, user1Acc1balance.doubleValue(), 0.0001f);
         assertEquals(finalSumUser2Acc1, user2Acc1balance.doubleValue(), 0.0001f);
-
     }
 
     @Test
     public void userCanNotTransferToInvalidRecipientNameTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
         String formattedSumUser2Acc1 = String.format(Locale.US, "%.2f", initialSumUser2Acc1);
 
         authAsUser(user1.getUsername(), user1.getPassword());
-
         new TransferPage().open().getPage(TransferPage.class)
                 .transferAmount(user1acc1Number, "Taylor Swift", user2acc1Number, String.valueOf(10000.00))
                 .checkAlertAndConfirm(AlertMessages.RECIPIENT_NAME_DOES_NOT_MATCH)
@@ -353,7 +324,6 @@ public class TransferUiTest extends BaseUiTest {
         //проверка отсутствия изменений сумм на счетах
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
         assertEquals(initialSumUser2Acc1, finalSumUser2Acc1, 0.0001f);
-
     }
 
     @Test
@@ -364,7 +334,6 @@ public class TransferUiTest extends BaseUiTest {
         String formattedSumUser2Acc1 = String.format(Locale.US, "%.2f", initialSumUser2Acc1);
 
         authAsUser(user1.getUsername(), user1.getPassword());
-
         new TransferPage().open().getPage(TransferPage.class)
                 .transferAmount(user1acc1Number, user2Name, "ACC000000", String.valueOf(10000.00))
                 .checkAlertAndConfirm(AlertMessages.NO_USER_FOUNT_WITH_THIS_ACCOUNT_NUMBER)
@@ -395,9 +364,7 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferToWrongRecipientAccTest() {
-
         user2Name = UserSteps.setCustomerName(user2, "Anna Smith");
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -429,13 +396,10 @@ public class TransferUiTest extends BaseUiTest {
         //проверка отсутствия изменений сумм на счетах
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
         assertEquals(initialSumUser2Acc1, finalSumUser2Acc1, 0.0001f);
-
-
     }
 
     @Test
     public void userCanNotTransferToWrongRecipientNameTest() {
-
         user2Name = UserSteps.setCustomerName(user2, "Anna Smith");
 
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -470,13 +434,10 @@ public class TransferUiTest extends BaseUiTest {
         //проверка отсутствия изменений сумм на счетах
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
         assertEquals(initialSumUser2Acc1, finalSumUser2Acc1, 0.0001f);
-
-
     }
 
     @Test
     public void userCanNotTransferWithEmptyFieldsTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
 
@@ -495,13 +456,10 @@ public class TransferUiTest extends BaseUiTest {
 
         double finalSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
-
-
     }
 
     @Test
     public void userCanNotTransferToEmptyRecipientNameTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -532,7 +490,6 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
         assertEquals(initialSumUser2Acc1, finalSumUser2Acc1, 0.0001f);
-
     }
 
     @Test
@@ -573,7 +530,6 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferWithEmptySenderAccTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -608,7 +564,6 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferToEmptyRecipientAccTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
@@ -643,15 +598,12 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferWithNotSelectedCheckboxTest() {
-
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
         String formattedSumUser1Acc1 = String.format(Locale.US, "%.2f", initialSumUser1Acc1);
         String formattedSumUser2Acc1 = String.format(Locale.US, "%.2f", initialSumUser2Acc1);
 
-
         authAsUser(user1.getUsername(), user1.getPassword());
-
         new TransferPage().open().getPage(TransferPage.class)
                 .transferWithoutCheckbox(user1acc1Number, user2Name, user2acc1Number, String.valueOf(SumValues.SOMEDEPOSIT))
                 .checkAlertAndConfirm(AlertMessages.PLEASE_FILL_ALL_FIELDS_AND_CONFIRM)
@@ -675,13 +627,11 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(initialSumUser1Acc1, finalSumUser1Acc1, 0.0001f);
         assertEquals(initialSumUser2Acc1, finalSumUser2Acc1, 0.0001f);
-
-
     }
 
     @Test
     public void userCanRepeatTransferToOwnAccountTest() {
-        //повторить с депозита на 0.02$ на счет user1acc2Id
+        //депозит на 0.02$ на счет user1acc2Id
         UserSteps.deposit(user1.getToken(), user1acc2Id, SumValues.SOMEDEPOSIT, ResponseSpecs.success());
 
         double initialSumUser1Acc1 = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -689,7 +639,6 @@ public class TransferUiTest extends BaseUiTest {
 
         authAsUser(user1.getUsername(), user1.getPassword());
         //переход на Transfer Again
-
         TransferPage transferPage= new TransferPage().open().goToTransferAgain();
         transferPage.getMatchingTransactionsHeader().shouldBe(visible);
 
@@ -704,8 +653,9 @@ public class TransferUiTest extends BaseUiTest {
         transferPage.getModalRepeatConfirmCheckbox().shouldNotBe(selected);
         transferPage.getModalRepeatSendTransferButton().shouldBe(Condition.disabled);
 
+
         transferPage.repeatTransfer(user1acc1Number)
-                .checkAlertAndConfirm(AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO) //доработать алерт
+                .checkAlertWithArgsAndConfirm(AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO,"0.02", user1acc1Id, user1acc2Id)
                 .getMatchingTransactionsHeader().shouldBe(visible);
 
         refresh();
@@ -736,7 +686,6 @@ public class TransferUiTest extends BaseUiTest {
         double initialSumUser2Acc1 = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
 
         authAsUser(user1.getUsername(), user1.getPassword());
-
         TransferPage transferPage= new TransferPage().open().goToTransferAgain();
 
         int transactionsQuantity = transferPage.getMatchingTransactionsItems().size();
@@ -744,8 +693,9 @@ public class TransferUiTest extends BaseUiTest {
         transferPage.repeatButtonInMatchingTransactions("TRANSFER_OUT - $5000.00").click();
         transferPage.getModalRepeatTransferToAccountId().shouldHave(Condition.exactText(String.valueOf(user2acc1Id)));
 
+        System.out.println("Трансфер и алерт:");
         transferPage.repeatTransfer(user1acc1Number)
-                .checkAlertAndConfirm(AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO) //доработать алерт
+                .checkAlertWithArgsAndConfirm(AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO,"5000", user1acc1Id, user2acc1Id)
                 .getMatchingTransactionsHeader().shouldBe(visible);
 
         refresh();
@@ -769,7 +719,6 @@ public class TransferUiTest extends BaseUiTest {
 
         assertEquals(initialSumUser1Acc1 - 5000.00, balanceUser1Acc1.doubleValue(), 0.0001f);
         assertEquals(initialSumUser2Acc1 + 5000.00, balanceUser2Acc1.doubleValue(), 0.0001f);
-
     }
 
 }

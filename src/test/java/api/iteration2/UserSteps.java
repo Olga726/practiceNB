@@ -1,17 +1,15 @@
 package api.iteration2;
 
-import generators.RandomEntityGenerator;
+import api.iteration2.generators.RandomEntityGenerator;
 import api.iteration2.models.*;
 import io.restassured.specification.ResponseSpecification;
-import models.*;
-
+import org.apache.hc.core5.http.HttpStatus;
 import org.assertj.core.api.SoftAssertions;
 import requesters.sceleton.requests.CrudRequester;
 import requesters.sceleton.requests.Endpoint;
 import requesters.sceleton.requests.ValidatedCrudRequester;
-import specs.RequestSpecs;
-import specs.ResponseSpecs;
-import org.apache.http.HttpStatus;
+import api.iteration2.specs.RequestSpecs;
+import api.iteration2.specs.ResponseSpecs;
 
 import java.util.List;
 
