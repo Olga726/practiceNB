@@ -19,9 +19,9 @@ public class TransferPage extends BasePage<TransferPage> {
     private SelenideElement transferAgainButton = $$("button").findBy(text("\uD83D\uDD01 Transfer Again"));
     private SelenideElement searchTransactionButton = $$("button").findBy(text("\uD83D\uDD0D Search Transactions"));
     private SelenideElement sendTransferButton = $$("button").findBy(text("\uD83D\uDE80 Send Transfer"));
-    private SelenideElement recipientNameInput = $(Selectors.byPlaceholder("Enter recipient name"));
-    private SelenideElement recipientAccountInput = $(Selectors.byPlaceholder("Enter recipient account number"));
-    private SelenideElement searchByUsernamOrNameInput = $(Selectors.byPlaceholder("Enter name to find transactions"));
+    private SelenideElement recipientNameInput = $(Selectors.byAttribute("placeholder", "Enter recipient name"));
+    private SelenideElement recipientAccountInput = $(Selectors.byAttribute("placeholder", "Enter recipient account number"));
+    private SelenideElement searchByUsernamOrNameInput = $(Selectors.byAttribute("placeholder", "Enter name to find transactions"));
     private SelenideElement confirmCheckbox = $(Selectors.byId("confirmCheck"));
     private SelenideElement matchingTransactionsHeader = $(Selectors.byText("Matching Transactions"));
     private ElementsCollection matchingTransactionsItems = $$("li.list-group-item");
@@ -32,8 +32,6 @@ public class TransferPage extends BasePage<TransferPage> {
     private SelenideElement modalRepeatConfirmCheckbox= $("[role='dialog']").$(Selectors.byId("confirmCheck"));
     private SelenideElement modalRepeatCancelButton= $("[role='dialog']").$$("button").findBy(text("Cancel"));
     private SelenideElement modalRepeatSendTransferButton= $("[role='dialog']").$$("button").findBy(text("\uD83D\uDE80 Send Transfer"));
-
-
 
     @Override
     public String url() {
