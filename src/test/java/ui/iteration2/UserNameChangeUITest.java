@@ -5,6 +5,7 @@ import models.UserModel;
 
 import com.codeborne.selenide.*;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +28,11 @@ public class UserNameChangeUITest extends BaseUiTest {
     @BeforeEach
     public void createUserAndAccount() {
         user1 = UserSteps.createUser();
+    }
+
+    @AfterEach
+    public void deleteUsers(){
+        UserSteps.deleteUsers(user1);
     }
 
     @ParameterizedTest

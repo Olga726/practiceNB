@@ -1,13 +1,16 @@
 package ui.iteration2.pages;
 
-import com.codeborne.selenide.Selectors;
-import com.codeborne.selenide.Selenide;
-import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.*;
 import lombok.Getter;
 import org.openqa.selenium.Alert;
+
+import java.util.Locale;
+
+import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.switchTo;
 
 @Getter
 public abstract class BasePage<T extends BasePage> {
@@ -46,4 +49,16 @@ public abstract class BasePage<T extends BasePage> {
         alert.accept();
         return (T) this;
     }
+
+    public void verifyBalanceInSelector(String accNumber, double balance) {
+        String formatted = String.format(Locale.US, "%.2f", balance);
+        String expected = accNumber + " (Balance: $" + formatted + ")";
+
+        accountSelector.$$("option").shouldHave(sizeGreaterThan(0));
+
+        accountSelector.$$("option")
+                .findBy(text(expected))
+                .should(Condition.exist);
+    }
+
 }

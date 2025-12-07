@@ -25,10 +25,29 @@ public class BaseUiTest extends BaseTest {
     }
 
 
-    public void authAsUser(String username, String password){
+    public static void authAsUser(String username, String password){
         Selenide.open("/");
+        Selenide.clearBrowserCookies();
+        Selenide.clearBrowserLocalStorage();
         String userAuthHeader = RequestSpecs.getUserAuthHeader(username, password);
         executeJavaScript("localStorage.setItem('authToken', arguments[0]);", userAuthHeader);
+        Selenide.refresh();
+
+    }
+
+    public static void switchUser(String username, String password) {
+        // 1️⃣ Очистка всего состояния браузера
+        Selenide.clearBrowserCookies();
+        Selenide.clearBrowserLocalStorage();
+
+        // 2️⃣ Открываем базовую страницу приложения
+        Selenide.open("/");
+
+        // 3️⃣ Устанавливаем новый токен пользователя
+        String userAuthHeader = RequestSpecs.getUserAuthHeader(username, password);
+        executeJavaScript("localStorage.setItem('authToken', arguments[0]);", userAuthHeader);
+
+        // 4️⃣ Обновляем страницу
         Selenide.refresh();
 
     }
