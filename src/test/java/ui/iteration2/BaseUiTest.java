@@ -1,11 +1,14 @@
 package ui.iteration2;
 
 import api.iteration2.BaseTest;
-import api.iteration2.configs.Config;
-import api.iteration2.specs.RequestSpecs;
+import api.configs.Config;
+import api.specs.RequestSpecs;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import org.assertj.core.api.SoftAssertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Map;
 
@@ -51,4 +54,20 @@ public class BaseUiTest extends BaseTest {
         Selenide.refresh();
 
     }
+
+    public static class BaseTest {
+        protected SoftAssertions softly;
+
+        @BeforeEach
+        public void setupTest(){
+            this.softly = new SoftAssertions();
+        }
+
+        @AfterEach
+        public void afterTest(){
+            softly.assertAll();
+        }
+
+
+        }
 }
