@@ -1,6 +1,6 @@
 package ui.iteration2;
 import api.iteration2.UserSteps;
-import api.iteration2.models.UserModel;
+import api.models.UserModel;
 import ui.iteration2.pages.AlertMessages;
 import ui.iteration2.pages.DashboardPage;
 import ui.iteration2.pages.DepositPage;

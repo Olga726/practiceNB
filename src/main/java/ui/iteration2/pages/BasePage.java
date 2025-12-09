@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public abstract class BasePage<T extends BasePage> {
     protected SelenideElement userInfo = $(".user-info");
     protected SelenideElement userName = $(".user-name");
+    public static final String DEFAULTUSER_NAME = "Noname";
     protected SelenideElement userUserName = $(".user-username");
 
     protected SelenideElement accountSelector = $(".form-control.account-selector");

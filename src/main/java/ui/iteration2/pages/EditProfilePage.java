@@ -25,11 +25,6 @@ private SelenideElement saveChangesButton = $$("button").findBy(text("\uD83D\uDC
         return this;
     }
 
-    public EditProfilePage setNewName(String newName){
-        editProfileInput.setValue(newName);
-        return this;
-    }
-
     public EditProfilePage clickButton (){
         saveChangesButton.click();
         return this;

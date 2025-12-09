@@ -1,9 +1,9 @@
 package ui.iteration2;
 
 import api.iteration2.UserSteps;
-import api.iteration2.models.Account;
-import api.iteration2.models.SumValues;
-import api.iteration2.models.UserModel;
+import api.models.Account;
+import api.models.SumValues;
+import api.models.UserModel;
 import org.junit.jupiter.api.AfterAll;
 
 import org.junit.jupiter.api.BeforeAll;

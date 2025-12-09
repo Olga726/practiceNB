@@ -12,6 +12,7 @@ import static com.codeborne.selenide.Selenide.$$;
 public class DashboardPage extends BasePage<DashboardPage>{
     private SelenideElement headerUserDashboard = $(Selectors.byText("User Dashboard"));
     private SelenideElement welcomeText = $(".welcome-text");
+    public static final String DEFAULTWELCOMENAME = "noname";
     private SelenideElement depositMoneyButton = $$("button").findBy(text("\uD83D\uDCB0 Deposit Money"));
     private SelenideElement makeTransferButton = $$("button").findBy(text("\uD83D\uDD04 Make a Transfer"));
     private SelenideElement createAccountButton = $$("button").findBy(text("➕ Create New Account"));
