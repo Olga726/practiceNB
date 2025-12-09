@@ -1,10 +1,10 @@
 package ui.iteration2;
 
 import api.iteration2.UserSteps;
-import models.UserModel;
+import api.models.UserModel;
 
-import com.codeborne.selenide.*;
-
+import com.codeborne.selenide.Condition;
+import com.mifmif.common.regex.Generex;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,20 +20,29 @@ import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static ui.iteration2.pages.BasePage.DEFAULTUSER_NAME;
+import static ui.iteration2.pages.DashboardPage.DEFAULTWELCOMENAME;
 
 public class UserNameChangeUITest extends BaseUiTest {
     private static UserModel user1;
+    private String newName;
 
+    private String generateName() {
+        String regex = "^[A-Za-z]+ [A-Za-z]+$".replaceAll("^\\^", "").replaceAll("\\$$", "");
+        Generex generex = new Generex(regex);
+        return generex.random();
+    }
 
     @BeforeEach
-    public void createUserAndAccount() {
+    public void setup() {
         user1 = UserSteps.createUser();
     }
 
     @AfterEach
-    public void deleteUsers(){
+    public void deleteUsers() {
         UserSteps.deleteUsers(user1);
     }
+
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -47,8 +56,8 @@ public class UserNameChangeUITest extends BaseUiTest {
 
         //проверка отображения имени и username
         DashboardPage dashboard = new DashboardPage().open();
-        dashboard.getWelcomeText().shouldHave(Condition.text("noname"));
-        dashboard.getUserName().shouldHave(Condition.text("Noname"));
+        dashboard.getWelcomeText().shouldHave(Condition.text(DEFAULTWELCOMENAME));
+        dashboard.getUserName().shouldHave(Condition.text(DEFAULTUSER_NAME));
         dashboard.getUserUserName().shouldHave(Condition.text(user1.getUsername()));
 
         EditProfilePage editProfilePage = dashboard.openEditProfile().getPage(EditProfilePage.class);
@@ -83,11 +92,24 @@ public class UserNameChangeUITest extends BaseUiTest {
         refresh();
 
         //проверка, что старое имя Noname отображается на ui
-        editProfilePage.getUserName().shouldHave(text("Noname"));
+        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
 
         //Проверка API что имя пустое
         assertNull(UserSteps.getCustomerName(user1));
 
+    }
+
+    @Test
+    public void userCanNotChangeNameWithoutEnterInputTest() {
+        newName = generateName();
+        UserSteps.setCustomerName(user1, newName);
+
+        authAsUser(user1.getUsername(), user1.getPassword());
+
+        new EditProfilePage().open().clickButton().checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME);
+
+        new EditProfilePage().open().getUserName().shouldHave(text(newName));
+        assertEquals(newName, UserSteps.getCustomerName(user1));
     }
 
     @Test
@@ -98,24 +120,10 @@ public class UserNameChangeUITest extends BaseUiTest {
                 .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME);
         refresh();
 
-        editProfilePage.getUserName().shouldHave(text("Noname"));
+        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
         assertNull(UserSteps.getCustomerName(user1));
     }
 
-    @Test
-    public void userCanNotChangeNameWithoutEnterInputTest() {
-        String newName = "Poll Fall";
-        authAsUser(user1.getUsername(), user1.getPassword());
-
-        EditProfilePage editProfilePage = new EditProfilePage().open().editProfile(newName);
-        refresh();
-        sleep(2000);
-        editProfilePage.clickButton().checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME);
-        refresh();
-
-        editProfilePage.getUserName().shouldHave(text(newName));
-        assertEquals(newName, UserSteps.getCustomerName(user1));
-    }
 
     @Test
     public void userCanNotChangeNameToOnlySpacesTest() {
@@ -125,7 +133,7 @@ public class UserNameChangeUITest extends BaseUiTest {
                 .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME);
         refresh();
 
-        editProfilePage.getUserName().shouldHave(text("Noname"));
+        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
         assertNull(UserSteps.getCustomerName(user1));
     }
 }

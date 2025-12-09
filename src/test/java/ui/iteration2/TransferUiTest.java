@@ -1,9 +1,11 @@
 package ui.iteration2;
 
 import api.iteration2.UserSteps;
-import api.iteration2.models.*;
-import api.iteration2.specs.ResponseSpecs;
+import api.specs.ResponseSpecs;
 import com.codeborne.selenide.*;
+import api.models.Account;
+import api.models.SumValues;
+import api.models.UserModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -311,16 +313,12 @@ public class TransferUiTest extends BaseUiTest {
         refresh();
         transferPage.goToTransferAgain();
         int transactionsFinalQuantity = transferPage.getMatchingTransactionsItems().size();
-        System.out.println("Проверка, что количество транзакций увеличилось на 1:");
         assertEquals(transactionsQuantity + 1, transactionsFinalQuantity);
 
         int newTransactions = transferPage.getMatchingTransactionsItems()
                 .filter(Condition.text("TRANSFER_OUT - $5000.00"))
                 .size();
-        System.out.println("Проверка, что теперь 2 'TRANSFER_OUT - $5000.00':");
         assertEquals(2, newTransactions);
-
-        System.out.println("Проверка, что баланс user1acc1Id уменьшился на 5000, баланс user2acc1Id увеличился на 5000");
 
         assertEquals(initialSumUser1Acc1 - SumValues.MAXDEPOSIT.getValue(), UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001f);
         assertEquals(initialSumUser2Acc1 + SumValues.MAXDEPOSIT.getValue(), UserSteps.getAccBalance(user2.getToken(), user2acc1Id), 0.0001f);
