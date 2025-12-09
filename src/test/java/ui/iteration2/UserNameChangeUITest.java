@@ -5,6 +5,7 @@ import api.models.UserModel;
 
 import com.codeborne.selenide.Condition;
 import com.mifmif.common.regex.Generex;
+import generators.NameGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,12 +27,6 @@ import static ui.iteration2.pages.DashboardPage.DEFAULTWELCOMENAME;
 public class UserNameChangeUITest extends BaseUiTest {
     private static UserModel user1;
     private String newName;
-
-    private String generateName() {
-        String regex = "^[A-Za-z]+ [A-Za-z]+$".replaceAll("^\\^", "").replaceAll("\\$$", "");
-        Generex generex = new Generex(regex);
-        return generex.random();
-    }
 
     @BeforeEach
     public void setup() {
@@ -101,7 +96,7 @@ public class UserNameChangeUITest extends BaseUiTest {
 
     @Test
     public void userCanNotChangeNameWithoutEnterInputTest() {
-        newName = generateName();
+        newName = NameGenerator.generateName();
         UserSteps.setCustomerName(user1, newName);
 
         authAsUser(user1.getUsername(), user1.getPassword());

@@ -6,6 +6,8 @@ import com.codeborne.selenide.*;
 import api.models.Account;
 import api.models.SumValues;
 import api.models.UserModel;
+import generators.NameGenerator;
+import generators.RandomEntityGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ public class TransferUiTest extends BaseUiTest {
     private int user2acc1Id;
     private String user2acc1Number;
     private int user1acc2Id;
+    private String name1;
 
     @BeforeEach
     public void createUserAndAccount() {
@@ -43,9 +46,10 @@ public class TransferUiTest extends BaseUiTest {
         Account user1acc2 = UserSteps.createAccount(user1);
         user1acc2Id = (int) user1acc2.getId();
         user1acc2Number = user1acc2.getAccountNumber();
-        user1Name = UserSteps.setCustomerName(user1, "Garry First");
+        name1 = NameGenerator.generateName();
+        user1Name = UserSteps.setCustomerName(user1, name1);
         user2 = UserSteps.createUser();
-        user2Name = UserSteps.setCustomerName(user2, "Garry First");
+        user2Name = UserSteps.setCustomerName(user2, name1);
         Account user2acc1 = UserSteps.createAccount(user2);
         user2acc1Id = (int) user2acc1.getId();
         user2acc1Number = user2acc1.getAccountNumber();
@@ -143,16 +147,18 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferToInvalidRecipientNameTest() {
+        String name2 = NameGenerator.generateName();
         UiSteps.negativeTransferAssert(user1acc1Number, user2acc1Number, user1, user2,
                 String.valueOf(SumValues.MAXTRANSFER.getValue()),
-                user1acc1Id, user2acc1Id, "Taylor Swift", AlertMessages.RECIPIENT_NAME_DOES_NOT_MATCH,
+                user1acc1Id, user2acc1Id, name2, AlertMessages.RECIPIENT_NAME_DOES_NOT_MATCH,
                 user1acc1Number, user2acc1Number);
 
     }
 
     @Test
     public void userCanNotTransferToInvalidRecipientAccTest() {
-        UiSteps.negativeTransferAssert(user1acc1Number, "ACC000000", user1, user2,
+        String accNumber = RandomEntityGenerator.generate(String.class);
+        UiSteps.negativeTransferAssert(user1acc1Number, accNumber, user1, user2,
                 String.valueOf(SumValues.MAXTRANSFER.getValue()),
                 user1acc1Id, user2acc1Id, user2Name, AlertMessages.NO_USER_FOUND_WITH_THIS_ACCOUNT_NUMBER,
                 user1acc1Number, user2acc1Number);
@@ -161,7 +167,8 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferToWrongRecipientAccTest() {
-        user2Name = UserSteps.setCustomerName(user2, "Anna Smith");
+        String name2 = NameGenerator.generateName();
+        user2Name = UserSteps.setCustomerName(user2, name2);
 
         UiSteps.negativeTransferAssert(user1acc1Number, user1acc1Number, user1, user2,
                 String.valueOf(SumValues.MAXTRANSFER.getValue()),
@@ -190,7 +197,8 @@ public class TransferUiTest extends BaseUiTest {
 
     @Test
     public void userCanNotTransferToWrongRecipientNameTest() {
-        user2Name = UserSteps.setCustomerName(user2, "Anna Smith");
+        String name2 = NameGenerator.generateName();
+        user2Name = UserSteps.setCustomerName(user2, name2);
 
         UiSteps.negativeTransferAssert(user1acc1Number, user2acc1Number, user1, user2,
                 String.valueOf(SumValues.MAXTRANSFER.getValue()),
