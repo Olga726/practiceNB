@@ -2,6 +2,8 @@ package api.iteration2;
 
 import api.models.SumValues;
 import api.models.UserModel;
+import api.specs.ResponseSpecs;
+import api.steps.UserSteps;
 import io.restassured.specification.ResponseSpecification;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -9,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import api.specs.ResponseSpecs;
+
 import java.util.stream.Stream;
 
 
@@ -26,12 +28,12 @@ public class DepositTest extends BaseTest {
 
         //создание пользователя1 и счета
         user1 = UserSteps.createUser();
-        user1accId = UserSteps.createAccountAndGetId(user1.getToken());
+        user1accId = UserSteps.createAccount(user1).getId();
 
 
         //создание пользователя2  и счета
         user2 = UserSteps.createUser();
-        user2accId = UserSteps.createAccountAndGetId(user2.getToken());
+        user2accId = UserSteps.createAccount(user2).getId();
 
     }
 

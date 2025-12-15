@@ -27,12 +27,5 @@ public class DashboardPage extends BasePage<DashboardPage>{
         super.userInfo.click();
         return this;
     }
-
-    public DashboardPage openTransferPage(){
-        makeTransferButton.click();
-        return this;
-    }
-
-
-
+    
 }

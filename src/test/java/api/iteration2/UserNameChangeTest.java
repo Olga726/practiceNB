@@ -4,8 +4,17 @@ import api.models.Role;
 import api.models.UpdateUserNameRequest;
 import api.models.UpdateUserNameResponse;
 import api.models.UserModel;
+import api.steps.UserSteps;
+import common.annotations.UserSession;
+import common.extensions.UserSessionExtension;
+import common.storage.SessionStorage;
+import io.restassured.RestAssured;
+import io.restassured.filter.log.RequestLoggingFilter;
+import io.restassured.filter.log.ResponseLoggingFilter;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -16,6 +25,7 @@ import api.sceleton.requests.ValidatedCrudRequester;
 import api.specs.RequestSpecs;
 import api.specs.ResponseSpecs;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class UserNameChangeTest extends BaseTest {
     private static UserModel user;
+    @BeforeAll
+    public static void setUpRestAsuured() {
+        RestAssured.filters(
+                List.of(new RequestLoggingFilter(),
+                        new ResponseLoggingFilter()));
+    }
 
     @BeforeAll
     public static void preSteps() {
@@ -46,7 +62,6 @@ public class UserNameChangeTest extends BaseTest {
                 Arguments.of("Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray")
         );
     }
-
     @MethodSource("nameValidData")
     @ParameterizedTest
     public void userCanUpdateCustomerProfileWithValidData(String name) {
@@ -66,7 +81,6 @@ public class UserNameChangeTest extends BaseTest {
         softly.assertThat(Role.USER).isEqualTo(updateUserNameResponse.getCustomer().getRole());
 
     }
-
 
     public static Stream<Arguments> nameInvalidData() {
         return Stream.of(

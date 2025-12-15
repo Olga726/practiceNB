@@ -55,8 +55,7 @@ public enum Endpoint {
             BaseModel.class,
             String.class
     );
-
-
+    
     private final String url;
     private final Class<? extends BaseModel> requestModel;
     private final Class<?> responseModel;
