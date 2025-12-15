@@ -2,18 +2,20 @@ package ui.iteration2;
 
 import api.iteration2.BaseTest;
 import api.configs.Config;
-import api.specs.RequestSpecs;
 import com.codeborne.selenide.Configuration;
-import com.codeborne.selenide.Selenide;
+
+import common.extensions.BrowserMatchExtension;
+import common.extensions.UserSessionExtension;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-
+import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.Map;
 
-import static com.codeborne.selenide.Selenide.executeJavaScript;
 
+@ExtendWith(UserSessionExtension.class)
+@ExtendWith(BrowserMatchExtension.class)
 public class BaseUiTest extends BaseTest {
     @BeforeAll
     public static void setupSelenoid() {
@@ -27,47 +29,18 @@ public class BaseUiTest extends BaseTest {
 
     }
 
-
-    public static void authAsUser(String username, String password){
-        Selenide.open("/");
-        Selenide.clearBrowserCookies();
-        Selenide.clearBrowserLocalStorage();
-        String userAuthHeader = RequestSpecs.getUserAuthHeader(username, password);
-        executeJavaScript("localStorage.setItem('authToken', arguments[0]);", userAuthHeader);
-        Selenide.refresh();
-
-    }
-
-    public static void switchUser(String username, String password) {
-        // 1️⃣ Очистка всего состояния браузера
-        Selenide.clearBrowserCookies();
-        Selenide.clearBrowserLocalStorage();
-
-        // 2️⃣ Открываем базовую страницу приложения
-        Selenide.open("/");
-
-        // 3️⃣ Устанавливаем новый токен пользователя
-        String userAuthHeader = RequestSpecs.getUserAuthHeader(username, password);
-        executeJavaScript("localStorage.setItem('authToken', arguments[0]);", userAuthHeader);
-
-        // 4️⃣ Обновляем страницу
-        Selenide.refresh();
-
-    }
-
     public static class BaseTest {
         protected SoftAssertions softly;
 
         @BeforeEach
-        public void setupTest(){
+        public void setupTest() {
             this.softly = new SoftAssertions();
         }
 
         @AfterEach
-        public void afterTest(){
+        public void afterTest() {
             softly.assertAll();
         }
 
-
-        }
+    }
 }

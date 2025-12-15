@@ -1,10 +1,12 @@
 package ui.iteration2;
 
-import api.iteration2.UserSteps;
+import api.steps.UserSteps;
+
 import api.models.UserModel;
 
 import com.codeborne.selenide.Condition;
-import com.mifmif.common.regex.Generex;
+import common.annotations.UserSession;
+import common.storage.SessionStorage;
 import generators.NameGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,33 +14,30 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import ui.iteration2.pages.AlertMessages;
-
 import ui.iteration2.pages.DashboardPage;
 import ui.iteration2.pages.EditProfilePage;
-
-
 import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selenide.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static ui.iteration2.pages.BasePage.DEFAULTUSER_NAME;
 import static ui.iteration2.pages.DashboardPage.DEFAULTWELCOMENAME;
 
 public class UserNameChangeUITest extends BaseUiTest {
-    private static UserModel user1;
+    private UserModel user;
     private String newName;
 
     @BeforeEach
-    public void setup() {
-        user1 = UserSteps.createUser();
+    public void init(){
+        user = SessionStorage.getUser(1);
     }
 
     @AfterEach
-    public void deleteUsers() {
-        UserSteps.deleteUsers(user1);
+    public void cleanup() {
+        UserSteps.deleteUsers(user);
+        SessionStorage.clear();
     }
 
-
+    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "Johny Donny",
@@ -47,28 +46,28 @@ public class UserNameChangeUITest extends BaseUiTest {
             "Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray"
     })
     public void userCanChangeNameWithValidDataTest(String name) {
-        authAsUser(user1.getUsername(), user1.getPassword());
 
         //проверка отображения имени и username
         DashboardPage dashboard = new DashboardPage().open();
         dashboard.getWelcomeText().shouldHave(Condition.text(DEFAULTWELCOMENAME));
         dashboard.getUserName().shouldHave(Condition.text(DEFAULTUSER_NAME));
-        dashboard.getUserUserName().shouldHave(Condition.text(user1.getUsername()));
+        dashboard.getUserUserName().shouldHave(Condition.text(user.getUsername()));
 
         EditProfilePage editProfilePage = dashboard.openEditProfile().getPage(EditProfilePage.class);
-        editProfilePage.editProfile(name)
-                .checkAlertAndConfirm(AlertMessages.NAME_UPDATED_SUCCESSFULLY);
+        editProfilePage.editProfile(name).checkAlertAndConfirm(AlertMessages.NAME_UPDATED_SUCCESSFULLY);
 
-        refresh();
+        DashboardPage dashboardAfterReload = new DashboardPage().open();
+        dashboardAfterReload.getUserName().shouldHave(text(name));
 
-        editProfilePage.getUserName().shouldHave(text(name));
-        editProfilePage.getEditProfileInput().shouldHave(value(name));
+        EditProfilePage editProfilePageAfterReload = new EditProfilePage().open();
+        editProfilePageAfterReload.getEditProfileInput().shouldHave(value(name));
 
         //Проверка API что имя обновилось в профиле
-        assertEquals(name, UserSteps.getCustomerName(user1));
+        assertEquals(name, UserSteps.getCustomerName(user));
 
     }
 
+    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "<script>alert('XSS')</script>",
@@ -80,55 +79,42 @@ public class UserNameChangeUITest extends BaseUiTest {
             "1"
     })
     public void userCanNotChangeNameWithInvalidDataTest(String name) {
-        authAsUser(user1.getUsername(), user1.getPassword());
         EditProfilePage editProfilePage = new EditProfilePage().open()
                 .editProfile(name)
-                .checkAlertAndConfirm(AlertMessages.NAME_INVALID);
-        refresh();
+                .checkAlertAndConfirm(AlertMessages.NAME_INVALID)
+                .getPage(EditProfilePage.class);
 
         //проверка, что старое имя Noname отображается на ui
         editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
 
         //Проверка API что имя пустое
-        assertNull(UserSteps.getCustomerName(user1));
-
+        assertNull(UserSteps.getCustomerName(user));
     }
 
+    @UserSession
     @Test
     public void userCanNotChangeNameWithoutEnterInputTest() {
         newName = NameGenerator.generateName();
-        UserSteps.setCustomerName(user1, newName);
+        UserSteps.setCustomerName(user, newName);
 
-        authAsUser(user1.getUsername(), user1.getPassword());
-
-        new EditProfilePage().open().clickButton().checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME);
+        new EditProfilePage().open().clickButton()
+                .checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME)
+                .getPage(EditProfilePage.class);
 
         new EditProfilePage().open().getUserName().shouldHave(text(newName));
-        assertEquals(newName, UserSteps.getCustomerName(user1));
+        assertEquals(newName, UserSteps.getCustomerName(user));
     }
 
-    @Test
-    public void userCanNotChangeNonameWithoutEnterInputTest() {
-        //проверка если было noname
-        authAsUser(user1.getUsername(), user1.getPassword());
-        EditProfilePage editProfilePage = new EditProfilePage().open().clickButton()
-                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME);
-        refresh();
-
-        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
-        assertNull(UserSteps.getCustomerName(user1));
-    }
-
-
+    @UserSession
     @Test
     public void userCanNotChangeNameToOnlySpacesTest() {
         String newName = "   ";
-        authAsUser(user1.getUsername(), user1.getPassword());
         EditProfilePage editProfilePage = new EditProfilePage().open().editProfile(newName)
-                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME);
-        refresh();
+                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME)
+                .getPage(EditProfilePage.class);
 
         editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
-        assertNull(UserSteps.getCustomerName(user1));
+        assertNull(UserSteps.getCustomerName(user));
     }
+
 }

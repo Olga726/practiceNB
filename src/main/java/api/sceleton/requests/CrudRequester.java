@@ -63,6 +63,4 @@ public class CrudRequester extends HttpRequest implements CrudEndpointInterface 
                         .delete(endpoint.getUrl());
 
     }
-
-
 }

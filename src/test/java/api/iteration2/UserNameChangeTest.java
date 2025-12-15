@@ -4,8 +4,17 @@ import api.models.Role;
 import api.models.UpdateUserNameRequest;
 import api.models.UpdateUserNameResponse;
 import api.models.UserModel;
+import api.steps.UserSteps;
+import common.annotations.UserSession;
+import common.extensions.UserSessionExtension;
+import common.storage.SessionStorage;
+import io.restassured.RestAssured;
+import io.restassured.filter.log.RequestLoggingFilter;
+import io.restassured.filter.log.ResponseLoggingFilter;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -16,32 +25,15 @@ import api.sceleton.requests.ValidatedCrudRequester;
 import api.specs.RequestSpecs;
 import api.specs.ResponseSpecs;
 
+import java.util.List;
 import java.util.stream.Stream;
 
-import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class UserNameChangeTest {
-    private static String username = "Anna1";
-    private static String password = "sTRongPassword33$";
-    private static String userAuthHeader;
 
-    public String getName(String token){
-        return
-                given()
-                        .contentType(ContentType.JSON)
-                        .accept(ContentType.JSON)
-                        .header("Authorization", token)
-                        .get("http://localhost:4111/api/v1/customer/profile")
-                        .then()
-                        .assertThat()
-                        .statusCode(HttpStatus.SC_OK)
-                        .extract()
-                        .jsonPath()
-                        .getString("name");
-    }
-
+public class UserNameChangeTest extends BaseTest {
+    private static UserModel user;
     @BeforeAll
     public static void setUpRestAsuured() {
         RestAssured.filters(
@@ -70,33 +62,25 @@ public class UserNameChangeTest {
                 Arguments.of("Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray")
         );
     }
-
     @MethodSource("nameValidData")
     @ParameterizedTest
     public void userCanUpdateCustomerProfileWithValidData(String name) {
-        String initialName = getName(userAuthHeader);
+        UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
-        String body = String.format("""
-                {"name": "%s"
-                }
-                """, name);
+        UpdateUserNameResponse updateUserNameResponse = new ValidatedCrudRequester<UpdateUserNameResponse>(
+                RequestSpecs.authSpec(user.getToken()),
+                Endpoint.NAME,
+                ResponseSpecs.success())
+                .update(updateUserNameRequest);
 
-        given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .body(body)
-                .put("http://localhost:4111/api/v1/customer/profile")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .body("customer.name", Matchers.equalTo(name));
+        softly.assertThat("Profile updated successfully").isEqualTo(updateUserNameResponse.getMessage());
+        softly.assertThat(user.getId()).isEqualTo(updateUserNameResponse.getCustomer().getId());
+        softly.assertThat(name).isEqualTo(updateUserNameResponse.getCustomer().getName());
+        softly.assertThat(user.getUsername()).isEqualTo(updateUserNameResponse.getCustomer().getUsername());
+        softly.assertThat(user.getPassword()).isNotEqualTo(updateUserNameResponse.getCustomer().getPassword());
+        softly.assertThat(Role.USER).isEqualTo(updateUserNameResponse.getCustomer().getRole());
 
-        String updatedName =getName(userAuthHeader);
-
-        assertNotEquals(initialName, updatedName);
     }
-
 
     public static Stream<Arguments> nameInvalidData() {
         return Stream.of(
@@ -115,26 +99,12 @@ public class UserNameChangeTest {
     @MethodSource("nameInvalidData")
     @ParameterizedTest
     public void userCanNotUpdateCustomerProfileWithInvalidData(String name) {
-        String initialName = getName(userAuthHeader);
+        UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
-        String body = String.format("""
-                {"name": "%s"
-                }
-                """, name);
-        given()
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .body(body)
-                .put("http://localhost:4111/api/v1/customer/profile")
-                .then()
-                .assertThat()
-                .statusCode(HttpStatus.SC_BAD_REQUEST)
-                .body(Matchers.equalTo("Name must contain two words with letters only"));
-
-        String updatedName =getName(userAuthHeader);
-
-        assertEquals(initialName, updatedName);
+        new CrudRequester(RequestSpecs.authSpec(user.getToken()),
+                Endpoint.NAME,
+                ResponseSpecs.badRequestInvalidUsername())
+                .update(updateUserNameRequest);
 
     }
 }

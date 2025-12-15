@@ -1,5 +1,6 @@
 package api.models;
 
+import api.configs.Config;
 import generators.GeneratingRule;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,5 +18,10 @@ public class CreateUserRequest extends BaseModel {
     private String password;
     @GeneratingRule(regex = "^USER$")
     private Role role;
+
+    public static CreateUserRequest getAdmin() {
+        return CreateUserRequest.builder().username(Config.getProperty("admin.username"))
+                .password(Config.getProperty("admin.password")).build();
+    }
 
 }

@@ -1,9 +1,10 @@
-package api.iteration2;
+package api.steps;
 
 import generators.RandomEntityGenerator;
 import api.models.*;
 import io.restassured.specification.ResponseSpecification;
-import org.apache.hc.core5.http.HttpStatus;
+
+import org.apache.http.HttpStatus;
 import org.assertj.core.api.SoftAssertions;
 import api.sceleton.requests.CrudRequester;
 import api.sceleton.requests.Endpoint;
@@ -14,7 +15,7 @@ import api.specs.ResponseSpecs;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class UserSteps {
@@ -44,18 +45,6 @@ public class UserSteps {
                 .build();
     }
 
-
-    public static long createAccountAndGetId(String token) {
-        return new CrudRequester(
-                RequestSpecs.authSpec(token),
-                Endpoint.ACCOUNTS,
-                ResponseSpecs.entityWasCreated())
-                .post(null)
-                .extract()
-                .jsonPath()
-                .getInt("id");
-    }
-
     public static float getAccBalance(String token, long accId) {
         List<Account> accountList =
                 new CrudRequester(
@@ -83,16 +72,6 @@ public class UserSteps {
                 .build();
     }
 
-    public static DepositResponse depositResponse(
-            String token, long accId,
-            SumValues sum, ResponseSpecification spec) {
-        return new ValidatedCrudRequester<DepositResponse>(
-                RequestSpecs.authSpec(token),
-                Endpoint.DEPOSIT,
-                spec)
-                .post(makeDeposit(accId, sum));
-    }
-
     public static void deposit(
             String token, long accId,
             SumValues sum, ResponseSpecification spec) {
@@ -109,20 +88,6 @@ public class UserSteps {
         for (int i = 0; i < times; i++) {
             deposit(token, accId, sum, ResponseSpecs.success());
         }
-    }
-
-    public static TransferResponse depositAndTransferSuccess(
-            String token, long fromAcc, long toAcc, SumValues sum) {
-        deposit(token, fromAcc, sum, ResponseSpecs.success());
-        return transferSuccessResponse(token, fromAcc, toAcc, sum, ResponseSpecs.success());
-
-    }
-
-    public static void transferAndAssert(
-            SoftAssertions softly, String token,
-            long fromAcc, long toAcc, SumValues sum) {
-        TransferResponse resp = transferSuccessResponse(token, fromAcc, toAcc, sum, ResponseSpecs.success());
-        assertTransferResponse(softly, resp, fromAcc, toAcc, sum.getValue());
     }
 
     public static TransferRequest transferRequest(
@@ -148,20 +113,6 @@ public class UserSteps {
                 .post(transferRequest(fromAcc, toAcc, sum));
     }
 
-    public static void transferErrorResponse(
-            String token,
-            long fromAcc,
-            long toAcc,
-            SumValues sum,
-            ResponseSpecification spec) {
-
-        new CrudRequester(
-                RequestSpecs.authSpec(token),
-                Endpoint.TRANSFER,
-                spec)
-                .post(transferRequest(fromAcc, toAcc, sum));
-    }
-
     public static void assertTransferResponse(
             SoftAssertions softly,
             TransferResponse resp,
@@ -174,21 +125,39 @@ public class UserSteps {
         softly.assertThat(resp.getReceiverAccountId()).isEqualTo(expectedReceiver);
     }
 
-    public static void assertDepositResponse(
-            SoftAssertions softly,
-            DepositResponse resp,
-            SumValues sum,
-            long account,
-            float initialBalance) {
-        softly.assertThat(account).isEqualTo(resp.getId());
-        softly.assertThat(resp.getBalance()).isEqualTo(initialBalance + sum.getValue());
-        softly.assertThat(resp.getTransactions()).isNotNull();
-
+    public static String getCustomerName(UserModel user) {
+        return given()
+                .spec(RequestSpecs.authSpec(user.getToken()))
+                .get("http://localhost:4111/api/v1/customer/profile")
+                .then().assertThat()
+                .statusCode(HttpStatus.SC_OK)
+                .extract()
+                .path("name");
     }
 
-    public static void depositAndAssert(SoftAssertions softly, float initialBalance, String token, long account, SumValues sum) {
-        DepositResponse resp = depositResponse(token, account, sum, ResponseSpecs.success());
-        assertDepositResponse(softly, resp, sum, account, initialBalance);
+    public static Account createAccount(UserModel user) {
+        return given()
+                .spec(RequestSpecs.authSpec(user.getToken()))
+                .post("http://localhost:4111/api/v1/accounts")
+                .then().assertThat()
+                .statusCode(201)
+                .extract()
+                .as(Account.class);
+    }
+
+    public static String setCustomerName(UserModel user, String name) {
+        return given()
+                .spec(RequestSpecs.authSpec(user.getToken()))
+                .body(String.format("""
+                        {
+                            "name": "%s"
+                        }
+                        """, name))
+                .put("http://localhost:4111/api/v1/customer/profile")
+                .then().assertThat()
+                .statusCode(200)
+                .extract()
+                .path("customer.name");
     }
 
     public static void deleteUsers(UserModel... users) {
@@ -210,40 +179,60 @@ public class UserSteps {
         }
     }
 
-    public static String getCustomerName(UserModel user) {
-        return given()
-                .spec(RequestSpecs.authSpec(user.getToken()))
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .extract()
-                .path("name");
+    public static void depositAndAssert(SoftAssertions softly, float initialBalance, String token, long account, SumValues sum) {
+        DepositResponse resp = depositResponse(token, account, sum, ResponseSpecs.success());
+        assertDepositResponse(softly, resp, sum, account, initialBalance);
+    }
+    public static DepositResponse depositResponse(
+            String token, long accId,
+            SumValues sum, ResponseSpecification spec) {
+        return new ValidatedCrudRequester<DepositResponse>(
+                RequestSpecs.authSpec(token),
+                Endpoint.DEPOSIT,
+                spec)
+                .post(makeDeposit(accId, sum));
     }
 
-    public static Account createAccount(UserModel user){
-        return given()
-                .spec(RequestSpecs.authSpec(user.getToken()))
-                .post("http://localhost:4111/api/v1/accounts")
-                .then().assertThat()
-                .statusCode(201)
-                .extract()
-                .as(Account.class);
+    public static void assertDepositResponse(
+            SoftAssertions softly,
+            DepositResponse resp,
+            SumValues sum,
+            long account,
+            float initialBalance) {
+        softly.assertThat(account).isEqualTo(resp.getId());
+        softly.assertThat(resp.getBalance()).isEqualTo(initialBalance + sum.getValue());
+        softly.assertThat(resp.getTransactions()).isNotNull();
+
     }
 
-    public static String setCustomerName (UserModel user, String name){
-        return given()
-                .spec(RequestSpecs.authSpec(user.getToken()))
-                .body(String.format("""
-                    {
-                        "name": "%s"
-                    }
-                    """, name))
-                .put("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(200)
-                .extract()
-                .path("customer.name");
+    public static void transferErrorResponse(
+            String token,
+            long fromAcc,
+            long toAcc,
+            SumValues sum,
+            ResponseSpecification spec) {
+
+        new CrudRequester(
+                RequestSpecs.authSpec(token),
+                Endpoint.TRANSFER,
+                spec)
+                .post(transferRequest(fromAcc, toAcc, sum));
     }
+
+    public static TransferResponse depositAndTransferSuccess(
+            String token, long fromAcc, long toAcc, SumValues sum) {
+        deposit(token, fromAcc, sum, ResponseSpecs.success());
+        return transferSuccessResponse(token, fromAcc, toAcc, sum, ResponseSpecs.success());
+
+    }
+
+    public static void transferAndAssert(
+            SoftAssertions softly, String token,
+            long fromAcc, long toAcc, SumValues sum) {
+        TransferResponse resp = transferSuccessResponse(token, fromAcc, toAcc, sum, ResponseSpecs.success());
+        assertTransferResponse(softly, resp, fromAcc, toAcc, sum.getValue());
+    }
+
 
 }
 

@@ -1,14 +1,12 @@
 package ui.iteration2.pages;
 
+import api.models.UserModel;
+import api.steps.UserSteps;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.Selectors;
 import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.conditions.Attribute;
 import lombok.Getter;
-
-import java.util.List;
-
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.$$;
@@ -38,18 +36,47 @@ public class TransferPage extends BasePage<TransferPage> {
         return "/transfer";
     }
 
-    public TransferPage transferAmount(String transferAccont, String recipientName,
+    public TransferPage transferAmount(String transferAccont, UserModel recipient,
                                        String recipientAccont, String amount) {
-        super.accountSelector.$$("option").findBy(Condition.text(transferAccont)).click();
+
+        getAccountSelectors().stream()
+                .filter(acc -> acc.getAccNumber().equals(transferAccont))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + transferAccont))
+                .getElement()
+                .click();
+
+
+        String recipientName = UserSteps.getCustomerName(recipient);
         recipientNameInput.setValue(recipientName);
         recipientAccountInput.setValue(recipientAccont);
         super.amountInput.setValue(amount);
-        confirmCheckbox.setSelected(true);
+
+        if (!confirmCheckbox.isSelected()) confirmCheckbox.click();
+
         sendTransferButton.click();
         return this;
-
     }
 
+    public TransferPage transferWithParams (String transferAccont, String recipientName,
+                                       String recipientAccont, String amount) {
+
+        getAccountSelectors().stream()
+                .filter(acc -> acc.getAccNumber().equals(transferAccont))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + transferAccont))
+                .getElement()
+                .click();
+
+        recipientNameInput.setValue(recipientName);
+        recipientAccountInput.setValue(recipientAccont);
+        super.amountInput.setValue(amount);
+
+        if (!confirmCheckbox.isSelected()) confirmCheckbox.click();
+
+        sendTransferButton.click();
+        return this;
+    }
 
     public TransferPage clickSendTransfer() {
         sendTransferButton.click();
@@ -79,9 +106,7 @@ public class TransferPage extends BasePage<TransferPage> {
                 .orElseThrow();
 
         return el.$x(".//button[contains(., 'Repeat')]");
-
     }
-
 
     public TransferPage repeatTransfer(String account){
         modalRepeatTransferAccountSelector.$$("option")
@@ -90,6 +115,4 @@ public class TransferPage extends BasePage<TransferPage> {
         modalRepeatSendTransferButton.click();
         return this;
     }
-
-
 }

@@ -17,13 +17,4 @@ public class Account extends BaseModel{
     private float balance;
     private List<Transaction> transactions;
 
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
-    public static class LoginRequest extends BaseModel {
-        private String username;
-        private String password;
-    }
 }

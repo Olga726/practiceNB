@@ -4,17 +4,19 @@ package api.iteration2;
 import api.models.DeleteMessage;
 import api.models.SumValues;
 import api.models.UserModel;
-import io.restassured.specification.ResponseSpecification;
-
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import api.sceleton.requests.Endpoint;
 import api.sceleton.requests.ValidatedCrudRequester;
 import api.specs.RequestSpecs;
 import api.specs.ResponseSpecs;
+import api.steps.UserSteps;
+import io.restassured.specification.ResponseSpecification;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 
@@ -115,12 +117,12 @@ public class TransferTest {
     public void preSteps() {
         //создание пользователя1 и счетов
         user1 = UserSteps.createUser();
-        user1acc1Id = UserSteps.createAccountAndGetId(user1.getToken());
-        user1acc2Id = UserSteps.createAccountAndGetId(user1.getToken());
+        user1acc1Id = UserSteps.createAccount(user1).getId();
+        user1acc2Id = UserSteps.createAccount(user1).getId();
 
         //создание пользователя2 и счета
         user2 = UserSteps.createUser();
-        user2acc1Id = UserSteps.createAccountAndGetId(user2.getToken());
+        user2acc1Id = UserSteps.createAccount(user2).getId();
 
     }
 
