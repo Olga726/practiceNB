@@ -87,8 +87,10 @@ public class DepositUiTest extends BaseUiTest {
             "-1, 0.01"
     })
     public void validationAmountInputTest(String input, String validatedInput) {
-        new DepositPage().open().setAmount(input);
-        $x("//input[contains(@placeholder,'Enter amount')]").shouldHave(exactValue(validatedInput));
+
+        DepositPage depositPage = new DepositPage().open();
+        depositPage.setAmount(input);
+        depositPage.getAmountInput().shouldHave(exactValue(validatedInput));
 
     }
 }
