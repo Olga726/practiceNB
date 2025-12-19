@@ -27,12 +27,6 @@ public class DepositUiTest extends BaseUiTest {
         acc = UserSteps.createAccount(user);
     }
 
-    @AfterEach
-    public void cleanup() {
-        UserSteps.deleteUsers(user);
-        SessionStorage.clear();
-    }
-
     @UserSession
     @ParameterizedTest
     @ValueSource(doubles = {0.01, 5000.00})
