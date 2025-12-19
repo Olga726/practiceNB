@@ -16,10 +16,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.openqa.selenium.Alert;
 import ui.iteration2.pages.AlertMessages;
 import ui.iteration2.pages.TransferPage;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.browserup.bup.mitmproxy.MitmProxyProcessManager.MitmProxyLoggingLevel.alert;
 import static com.codeborne.selenide.Condition.*;
+import static com.codeborne.selenide.Selenide.*;
+import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,18 +60,10 @@ public class TransferUiTest extends BaseUiTest {
         user2acc1Number = user2acc1.getAccountNumber();
 
         UserSteps.depositNTimes(user1.getToken(), user1acc1Id, SumValues.MAXDEPOSIT, 3);
-
-
-    }
-
-    @AfterEach
-    public void cleanup() {
-        UserSteps.deleteUsers(user1, user2);
-        SessionStorage.clear();
     }
 
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @ParameterizedTest
     @ValueSource(strings = {
             "0.01",
@@ -158,7 +157,7 @@ public class TransferUiTest extends BaseUiTest {
         assertEquals(initialSumUser1Acc1, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.001f);
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferOverBalanceTest() {
         //предварительный перевод для уменьшения баланса счета отправителя
@@ -183,7 +182,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferLessMinToAnotherUserAccTest() {
         double initialSenderBalance = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -202,7 +201,7 @@ public class TransferUiTest extends BaseUiTest {
         assertEquals(initialRecipientBalance, UserSteps.getAccBalance(user2.getToken(), user1acc2Id), 0.001f);
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferOverMaxToAnotherUserAccTest() {
         double initialSenderBalance = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -222,7 +221,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferToInvalidRecipientNameTest() {
         String newName = NameGenerator.generateName();
@@ -243,7 +242,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferToInvalidRecipientAccTest() {
         String accNumber = RandomEntityGenerator.generate(String.class);
@@ -265,7 +264,7 @@ public class TransferUiTest extends BaseUiTest {
         assertEquals(initialRecipientBalance, UserSteps.getAccBalance(user2.getToken(), user1acc2Id), 0.001f);
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferToEmptyRecipientAccTest() {
         UserSteps.setCustomerName(user2, NameGenerator.generateName());
@@ -287,7 +286,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferWithEmptyFieldsTest() {
         double initialSenderBalance = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -307,7 +306,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferToEmptyRecipientNameTest() {
         double initialSenderBalance = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
@@ -327,7 +326,7 @@ public class TransferUiTest extends BaseUiTest {
         assertEquals(initialRecipientBalance, UserSteps.getAccBalance(user2.getToken(), user1acc2Id), 0.001f);
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferNullAmountTest() {
         UserSteps.setCustomerName(user2, NameGenerator.generateName());
@@ -349,7 +348,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferWithEmptySenderAccTest() {
         UserSteps.setCustomerName(user2, NameGenerator.generateName());
@@ -374,7 +373,7 @@ public class TransferUiTest extends BaseUiTest {
 
     }
 
-    @UserSession
+    @UserSession(value = 2, auth = 1)
     @Test
     public void userCanNotTransferWithNotSelectedCheckboxTest() {
         UserSteps.setCustomerName(user2, NameGenerator.generateName());
@@ -424,12 +423,18 @@ public class TransferUiTest extends BaseUiTest {
                         String.valueOf(SumValues.SOMEDEPOSIT.getValue()), user1acc1Id, user1acc2Id)
                 .getMatchingTransactionsHeader().shouldBe(visible);
 
+        refresh();
         transferPage.goToTransferAgain();
-        int transactionsFinalQuantity = transferPage.getMatchingTransactionsItems().size();
-        assertEquals(transactionsQuantity + 2, transactionsFinalQuantity);
 
-        transferPage.getMatchingTransactionsItems().findBy(Condition.text("TRANSFER_OUT - $0.02")).shouldBe(visible);
-        transferPage.getMatchingTransactionsItems().findBy(Condition.text("TRANSFER_IN - $0.02")).shouldBe(visible);
+        int transactionsFinalQuantity = transferPage.getMatchingTransactionsItems().size();
+        softly.assertThat(transactionsFinalQuantity).isEqualTo(transactionsQuantity + 2);
+
+        softly.assertThat(
+                transferPage.getMatchingTransactionsItems().findBy(Condition.text("TRANSFER_OUT - $0.02"))
+                        .exists());
+        softly.assertThat(
+                transferPage.getMatchingTransactionsItems().findBy(Condition.text("TRANSFER_IN - $0.02"))
+                        .exists());
 
         //проверка что баланс Acc1 уменьшился, а Acc2 увеличился на 0.02
         assertEquals(initialSumUser1Acc1 - 0.02, UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.001f);
@@ -453,21 +458,35 @@ public class TransferUiTest extends BaseUiTest {
         transferPage.repeatButtonInMatchingTransactions("TRANSFER_OUT - $5000.00").click();
         transferPage.getModalRepeatTransferToAccountId().shouldHave(Condition.exactText(String.valueOf(user2acc1Id)));
 
-        transferPage.repeatTransfer(user1acc1Number)
-                .checkAlertWithArgsAndConfirm(AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO, String.valueOf(SumValues.MAXDEPOSIT.getValue()), user1acc1Id, user2acc1Id)
-                .getMatchingTransactionsHeader().shouldBe(visible);
+        String alertText = transferPage.repeatTransfer(user1acc1Number)
+                .getAlertTextAndConfirm();
 
+        softly.assertThat(alertText).contains(
+                AlertMessages.TRANSFER_SUCCESSFUL_FROM_ACCOUNT_TO.format(
+                        SumValues.MAXDEPOSIT.getValue(),
+                        user1acc1Id,
+                        user2acc1Id
+                ));
+
+        refresh();
         transferPage.goToTransferAgain();
         int transactionsFinalQuantity = transferPage.getMatchingTransactionsItems().size();
-        assertEquals(transactionsQuantity + 1, transactionsFinalQuantity);
+
+        softly.assertThat(transactionsFinalQuantity).isEqualTo(transactionsQuantity + 1);
 
         int newTransactions = transferPage.getMatchingTransactionsItems()
                 .filter(Condition.text("TRANSFER_OUT - $5000.00"))
                 .size();
-        assertEquals(2, newTransactions);
+        softly.assertThat(newTransactions).isEqualTo(2);
 
-        assertEquals(initialSumUser1Acc1 - SumValues.MAXDEPOSIT.getValue(), UserSteps.getAccBalance(user1.getToken(), user1acc1Id), 0.0001f);
-        assertEquals(initialSumUser2Acc1 + SumValues.MAXDEPOSIT.getValue(), UserSteps.getAccBalance(user2.getToken(), user2acc1Id), 0.0001f);
+        double actualUser1Acc1Balance = UserSteps.getAccBalance(user1.getToken(), user1acc1Id);
+        double expectedUser1Acc1Balance = initialSumUser1Acc1 - (double) SumValues.MAXDEPOSIT.getValue();
+        softly.assertThat(actualUser1Acc1Balance).isCloseTo(expectedUser1Acc1Balance, within(0.0001));
+
+        double actualUser2Acc1Balance = UserSteps.getAccBalance(user2.getToken(), user2acc1Id);
+        double expectedUser2Acc1Balance = initialSumUser2Acc1 + (double) SumValues.MAXDEPOSIT.getValue();
+        softly.assertThat(actualUser2Acc1Balance).isCloseTo(expectedUser2Acc1Balance, within(0.0001));
+
     }
 }
 

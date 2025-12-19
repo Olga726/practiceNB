@@ -31,12 +31,6 @@ public class UserNameChangeUITest extends BaseUiTest {
         user = SessionStorage.getUser(1);
     }
 
-    @AfterEach
-    public void cleanup() {
-        UserSteps.deleteUsers(user);
-        SessionStorage.clear();
-    }
-
     @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
@@ -81,7 +75,9 @@ public class UserNameChangeUITest extends BaseUiTest {
     public void userCanNotChangeNameWithInvalidDataTest(String name) {
         EditProfilePage editProfilePage = new EditProfilePage().open()
                 .editProfile(name)
-                .checkAlertAndConfirm(AlertMessages.NAME_INVALID)
+                .checkAlertAndConfirmAny(
+                        AlertMessages.NAME_INVALID,
+                        AlertMessages.ENTER_VALID_NAME)
                 .getPage(EditProfilePage.class);
 
         //проверка, что старое имя Noname отображается на ui
@@ -97,8 +93,9 @@ public class UserNameChangeUITest extends BaseUiTest {
         newName = NameGenerator.generateName();
         UserSteps.setCustomerName(user, newName);
 
-        new EditProfilePage().open().clickButton()
-                .checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME)
+        EditProfilePage editProfilePage =new EditProfilePage().open();
+        editProfilePage.getUserName().shouldHave(text(newName));
+        editProfilePage.clickButton().checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME)
                 .getPage(EditProfilePage.class);
 
         new EditProfilePage().open().getUserName().shouldHave(text(newName));

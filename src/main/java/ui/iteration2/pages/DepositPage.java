@@ -39,9 +39,12 @@ public class DepositPage extends BasePage<DepositPage>{
         depositButton.click();
         return this;
     }
-
+/*
     public DepositPage setAmount(String amount){
         amountInput.setValue(amount);
+        amountInput.pressTab();
         return this;
     }
+
+ */
 }

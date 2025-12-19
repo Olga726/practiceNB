@@ -3,6 +3,7 @@ package ui.iteration2.pages;
 
 import api.specs.RequestSpecs;
 import com.codeborne.selenide.*;
+import common.utils.RetryUtils;
 import lombok.Getter;
 import org.openqa.selenium.Alert;
 import ui.iteration2.elements.AccountSelector;
@@ -10,6 +11,7 @@ import ui.iteration2.elements.BaseElement;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -48,6 +50,7 @@ public abstract class BasePage<T extends BasePage> {
 
     public T setAmount(String amount) {
         amountInput.setValue(amount);
+        amountInput.pressTab();
         return (T) this;
     }
 
@@ -57,17 +60,41 @@ public abstract class BasePage<T extends BasePage> {
         alert.accept();
         return (T) this;
     }
+    public String getAlertTextAndConfirm() {
+        Alert alert = switchTo().alert();
+        String text = alert.getText();
+        alert.accept();
+        return text;
+    }
+
+
+    public T checkAlertAndConfirmAny(AlertMessages... messages) {
+        Alert alert = switchTo().alert();
+        String alertText = alert.getText();
+        boolean matched = Arrays.stream(messages)
+                .anyMatch(msg -> alertText.contains(msg.getMessage()));
+        if (!matched) {
+            throw new AssertionError(
+                    "Unexpected alert text: '" + alertText);
+        }
+        alert.accept();
+        return (T) this;
+
+    }
 
     public void verifyBalanceInSelector(String accNumber, double balance) {
         String expectedBalance = BigDecimal.valueOf(balance)
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString();
 
-        Selenide.Wait().until(driver ->
-                getAccountSelectors().stream().anyMatch(acc ->
+        RetryUtils.retry(
+                () -> getAccountSelectors().stream().anyMatch(acc ->
                         acc.getAccNumber().equals(accNumber) &&
                                 acc.getAccBalance().equals(expectedBalance)
-                )
+                ),
+                result -> result,
+                10,
+                500
         );
     }
 
