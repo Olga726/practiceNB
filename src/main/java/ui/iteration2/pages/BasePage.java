@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 import static com.codeborne.selenide.CollectionCondition.sizeGreaterThan;
@@ -96,6 +97,14 @@ public abstract class BasePage<T extends BasePage> {
                 10,
                 500
         );
+    }
+
+    public double getBalance(String accNumber) {
+        return getAccountSelectors().stream()
+                .filter(acc -> acc.getAccNumber().equals(accNumber))
+                .findFirst()
+                .map(acc -> new BigDecimal(acc.getAccBalance()).doubleValue())
+                .orElseThrow(() -> new NoSuchElementException("Аккаунт не найден: " + accNumber));
     }
 
     public static void authAsUser(String username, String password) {
