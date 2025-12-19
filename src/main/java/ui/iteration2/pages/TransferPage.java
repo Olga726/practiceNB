@@ -58,15 +58,17 @@ public class TransferPage extends BasePage<TransferPage> {
         return this;
     }
 
-    public TransferPage transferWithParams (String transferAccont, String recipientName,
+    public TransferPage transferWithParams (String transferAccount, String recipientName,
                                        String recipientAccont, String amount) {
 
-        getAccountSelectors().stream()
-                .filter(acc -> acc.getAccNumber().equals(transferAccont))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Account not found: " + transferAccont))
-                .getElement()
-                .click();
+        if (transferAccount != null && !transferAccount.isEmpty()) {
+            getAccountSelectors().stream()
+                    .filter(acc -> acc.getAccNumber().equals(transferAccount))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Account not found: " + transferAccount))
+                    .getElement()
+                    .click();
+        }
 
         recipientNameInput.setValue(recipientName);
         recipientAccountInput.setValue(recipientAccont);
