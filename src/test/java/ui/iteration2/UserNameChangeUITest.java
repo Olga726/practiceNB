@@ -70,7 +70,8 @@ public class UserNameChangeUITest extends BaseUiTest {
             "Ivi  Smith",
             "= /*-<>:;'.?!@#$%^^&*()+-",
             "Li",
-            "1"
+            "1",
+            "   "
     })
     public void userCanNotChangeNameWithInvalidDataTest(String name) {
         EditProfilePage editProfilePage = new EditProfilePage().open()
@@ -100,18 +101,6 @@ public class UserNameChangeUITest extends BaseUiTest {
 
         new EditProfilePage().open().getUserName().shouldHave(text(newName));
         assertEquals(newName, UserSteps.getCustomerName(user));
-    }
-
-    @UserSession
-    @Test
-    public void userCanNotChangeNameToOnlySpacesTest() {
-        String newName = "   ";
-        EditProfilePage editProfilePage = new EditProfilePage().open().editProfile(newName)
-                .checkAlertAndConfirm(AlertMessages.ENTER_VALID_NAME)
-                .getPage(EditProfilePage.class);
-
-        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
-        assertNull(UserSteps.getCustomerName(user));
     }
 
 }

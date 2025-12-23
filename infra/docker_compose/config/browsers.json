@@ -5,12 +5,14 @@
       "128.0": {
         "image": "selenoid/vnc_chrome:128.0",
         "port": "4444",
-        "path": "/"
+        "path": "/",
+        "max_instances": 8
       },
       "115.0": {
         "image": "selenoid/vnc_chrome:115.0",
         "port": "4444",
-        "path": "/"
+        "path": "/",
+        "max_instances": 8
       }
     }
   },
@@ -20,12 +22,14 @@
       "125.0": {
         "image": "selenoid/vnc_firefox:125.0",
         "port": "4444",
-        "path": "/wd/hub"
+        "path": "/wd/hub",
+        "max_instances": 8
       },
       "115.0": {
         "image": "selenoid/vnc_firefox:115.0",
         "port": "4444",
-        "path": "/wd/hub"
+        "path": "/wd/hub",
+        "max_instances": 8
       }
     }
   },
@@ -35,12 +39,14 @@
       "109.0": {
         "image": "selenoid/vnc_opera:109.0",
         "port": "4444",
-        "path": "/"
+        "path": "/",
+        "max_instances": 8
       },
       "100.0": {
         "image": "selenoid/vnc_opera:100.0",
         "port": "4444",
-        "path": "/"
+        "path": "/",
+        "max_instances": 8
       }
     }
   }
