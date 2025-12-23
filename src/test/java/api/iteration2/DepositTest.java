@@ -17,39 +17,18 @@ import java.util.stream.Stream;
 
 public class DepositTest extends BaseTest {
 
-    private static UserModel user1;
-    private static UserModel user2;
-    private static long user1accId;
-    private static long user2accId;
-
-
-    @BeforeAll
-    public static void preSteps() {
-
-        //создание пользователя1 и счета
-        user1 = UserSteps.createUser();
-        user1accId = UserSteps.createAccount(user1).getId();
-
-
-        //создание пользователя2  и счета
-        user2 = UserSteps.createUser();
-        user2accId = UserSteps.createAccount(user2).getId();
-
-    }
-
-    @AfterAll
-    public static void deleteUsers() {
-        UserSteps.deleteUsers(user1, user2);
-    }
-
     @ParameterizedTest
     @MethodSource("validDepositsData")
     public void userCanDeposit(SumValues depositSum) {
-        float initialBalance = UserSteps.getAccBalance(user1.getToken(), user1accId);
+        UserModel user = UserSteps.createUser();
+        long accountId = UserSteps.createAccount(user).getId();
+        float initialBalance = UserSteps.getAccBalance(user.getToken(), accountId);
         UserSteps.depositAndAssert(
                 softly, initialBalance,
-                user1.getToken(), user1accId, depositSum);
+                user.getToken(), accountId, depositSum);
+        UserSteps.deleteUsers(user);
     }
+
     public static Stream<Arguments> validDepositsData() {
         return Stream.of(
                 Arguments.of(SumValues.MINDEPOSIT),
@@ -60,12 +39,15 @@ public class DepositTest extends BaseTest {
     @ParameterizedTest
     @MethodSource("invalidDepositsSum")
     public void userCannotDepositInvalidSum(SumValues sum, ResponseSpecification spec) {
+        UserModel user = UserSteps.createUser();
+        long accountId = UserSteps.createAccount(user).getId();
         UserSteps.deposit(
-                user1.getToken(),
-                user1accId,
+                user.getToken(),
+                accountId,
                 sum,
                 spec
         );
+        UserSteps.deleteUsers(user);
     }
 
     public static Stream<Arguments> invalidDepositsSum() {
@@ -77,9 +59,10 @@ public class DepositTest extends BaseTest {
 
     @Test
     public void userCanNotDepositIntoNotExistingAcc() {
+        UserModel user = UserSteps.createUser();
         long notExistingAcc = (long) (Math.random() * 10000);
         UserSteps.deposit(
-                user1.getToken(),
+                user.getToken(),
                 notExistingAcc,
                 SumValues.SOMEDEPOSIT,
                 ResponseSpecs.unauthorized());
@@ -88,14 +71,19 @@ public class DepositTest extends BaseTest {
 
     @Test
     public void userCanNotDepositIntoAnotherUserAcc() {
+        UserModel user1 = UserSteps.createUser();
+
+        UserModel user2 = UserSteps.createUser();
+        long user2Acc = UserSteps.createAccount(user2).getId();
 
         //пользователь1 пытается положить депозит на счет пользователя2
         UserSteps.deposit(
                 user1.getToken(),
-                user2accId,
+                user2Acc,
                 SumValues.SOMEDEPOSIT,
                 ResponseSpecs.unauthorized());
 
+        UserSteps.deleteUsers(user1, user2);
 
     }
 }

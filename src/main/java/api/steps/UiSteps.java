@@ -91,7 +91,7 @@ public class UiSteps {
         softly.assertThat(actualBalance)
                 .isEqualTo(initialSenderBalance);
 
-        //проверка API отсуствия изменений сумм на счетах
+        //проверка API отсутствия изменений сумм на счетах
         softly.assertThat(initialSenderBalance).isCloseTo(UserSteps.getAccBalance(sender.getToken(), senderAccId), within(0.0001));
         softly.assertThat(initialRecipientBalance).isCloseTo(UserSteps.getAccBalance(recipient.getToken(), recipientAccId), within(0.0001));
         softly.assertAll();

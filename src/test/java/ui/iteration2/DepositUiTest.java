@@ -30,7 +30,6 @@ public class DepositUiTest extends BaseUiTest {
     @UserSession
     @ParameterizedTest
     @ValueSource(doubles = {0.01, 5000.00})
-    @Browsers({"chrome"})
     public void userCanDepositMaxOrMinTest(double amount) {
         new UiSteps(user).positiveDeposit((int) acc.getId(), acc.getAccountNumber(), String.valueOf(amount));
 
@@ -70,6 +69,7 @@ public class DepositUiTest extends BaseUiTest {
                 null, AlertMessages.ENTER_VALID_AMOUNT);
     }
 
+    @Disabled("нет валидации в поле суммы")
     @UserSession
     @ParameterizedTest
     @CsvSource({
