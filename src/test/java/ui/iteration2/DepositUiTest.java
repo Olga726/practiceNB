@@ -5,7 +5,7 @@ import api.steps.UserSteps;
 import api.models.Account;
 import api.models.SumValues;
 import api.models.UserModel;
-import common.annotations.Browsers;
+
 import common.annotations.UserSession;
 import common.storage.SessionStorage;
 import org.junit.jupiter.api.*;
@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import ui.iteration2.pages.AlertMessages;
 import ui.iteration2.pages.DepositPage;
 import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selenide.*;
+
 
 public class DepositUiTest extends BaseUiTest {
     private UserModel user;

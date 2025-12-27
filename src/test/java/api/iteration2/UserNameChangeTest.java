@@ -4,17 +4,12 @@ import api.models.Role;
 import api.models.UpdateUserNameRequest;
 import api.models.UpdateUserNameResponse;
 import api.models.UserModel;
+import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
-import common.annotations.UserSession;
-import common.extensions.UserSessionExtension;
-import common.storage.SessionStorage;
 import io.restassured.RestAssured;
 import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,8 +23,7 @@ import api.specs.ResponseSpecs;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 
 public class UserNameChangeTest extends BaseTest {
@@ -41,14 +35,14 @@ public class UserNameChangeTest extends BaseTest {
                         new ResponseLoggingFilter()));
     }
 
-    @BeforeAll
-    public static void preSteps() {
+    @BeforeEach
+    public void preSteps() {
         //создание пользователя
         user = UserSteps.createUser();
     }
 
-    @AfterAll
-    public static void deleteUser() {
+    @AfterEach
+    public void deleteUser() {
         UserSteps.deleteUsers(user);
 
     }
@@ -62,9 +56,12 @@ public class UserNameChangeTest extends BaseTest {
                 Arguments.of("Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray")
         );
     }
+
+
     @MethodSource("nameValidData")
     @ParameterizedTest
-    public void userCanUpdateCustomerProfileWithValidData(String name) {
+    @Tag("with_database_with_fix")
+    public void userCanUpdateCustomerProfileWithValidDataTest(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
         UpdateUserNameResponse updateUserNameResponse = new ValidatedCrudRequester<UpdateUserNameResponse>(
@@ -79,6 +76,10 @@ public class UserNameChangeTest extends BaseTest {
         softly.assertThat(user.getUsername()).isEqualTo(updateUserNameResponse.getCustomer().getUsername());
         softly.assertThat(user.getPassword()).isNotEqualTo(updateUserNameResponse.getCustomer().getPassword());
         softly.assertThat(Role.USER).isEqualTo(updateUserNameResponse.getCustomer().getRole());
+
+        String finalUsername = UserSteps.getCustomerName(user);
+        String dbName = DataBaseSteps.getUserById(user.getId()).getName();
+        assertEquals(finalUsername, dbName);
 
     }
 
@@ -98,13 +99,17 @@ public class UserNameChangeTest extends BaseTest {
 
     @MethodSource("nameInvalidData")
     @ParameterizedTest
-    public void userCanNotUpdateCustomerProfileWithInvalidData(String name) {
+    @Tag("with_database_with_fix")
+    public void userCanNotUpdateCustomerProfileWithInvalidDataTest(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
 
         new CrudRequester(RequestSpecs.authSpec(user.getToken()),
                 Endpoint.NAME,
                 ResponseSpecs.badRequestInvalidUsername())
                 .update(updateUserNameRequest);
+
+        assertNull(UserSteps.getCustomerName(user));
+        assertNull(DataBaseSteps.getUserById(user.getId()).getName());
 
     }
 }

@@ -1,7 +1,10 @@
 package api.steps;
 
+import api.dao.AccountDao;
+import api.dao.comparison.DaoAndModelAssertions;
 import generators.RandomEntityGenerator;
 import api.models.*;
+import io.restassured.common.mapper.TypeRef;
 import io.restassured.specification.ResponseSpecification;
 
 import org.apache.http.HttpStatus;
@@ -16,6 +19,7 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class UserSteps {
@@ -46,6 +50,10 @@ public class UserSteps {
     }
 
     public static float getAccBalance(String token, long accId) {
+       return getAccInfo(token, accId).getBalance();
+    }
+
+    public static Account getAccInfo(String token, long accId){
         List<Account> accountList =
                 new CrudRequester(
                         RequestSpecs.authSpec(token),
@@ -60,10 +68,18 @@ public class UserSteps {
         return accountList.stream()
                 .filter(a -> a.getId() == accId)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Account not found"))
-                .getBalance();
-
+                .orElseThrow(() -> new RuntimeException("Account not found"));
     }
+
+    public static List<Account> getAccounts(String token){
+        return new CrudRequester(
+                        RequestSpecs.authSpec(token),
+                        Endpoint.ACCOUNTINFO,
+                        ResponseSpecs.success())
+                        .getAll()
+                .as(new TypeRef<List<Account>>() {});
+    }
+
 
     public static DepositRequest makeDeposit(long accId, SumValues sum) {
         return DepositRequest.builder()
@@ -231,6 +247,18 @@ public class UserSteps {
             long fromAcc, long toAcc, SumValues sum) {
         TransferResponse resp = transferSuccessResponse(token, fromAcc, toAcc, sum, ResponseSpecs.success());
         assertTransferResponse(softly, resp, fromAcc, toAcc, sum.getValue());
+    }
+
+    public static void matchAccountInfoWithDao(UserModel user, long accId){
+        Account account= UserSteps.getAccInfo(user.getToken(), accId);
+        AccountDao accountDao = DataBaseSteps.getAccountById(accId);
+        DaoAndModelAssertions.assertThat(account, accountDao).match();
+    }
+
+    public static void assertBalanceEqualsDB(String token, long accId){
+        float apiAcc2Balance = UserSteps.getAccBalance(token, accId);
+        float dbAcc2Balance = DataBaseSteps.getAccountById(accId).getBalance();
+        assertEquals(apiAcc2Balance, dbAcc2Balance);
     }
 
 

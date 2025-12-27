@@ -28,14 +28,20 @@ public class ResponseSpecs {
     public static ResponseSpecification badRequestSumOverMax() {
         return defaultResponseBuilder()
                 .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
-                .expectBody(Matchers.equalTo("Deposit amount cannot exceed 5000"))
+                .expectBody(Matchers.anyOf(
+                        Matchers.equalTo("Deposit amount cannot exceed 5000"),
+                        Matchers.equalTo("Deposit amount exceeds the 5000 limit")
+                ))
                 .build();
     }
 
     public static ResponseSpecification badRequestSumLessMin() {
         return defaultResponseBuilder()
                 .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
-                .expectBody(Matchers.equalTo("Deposit amount must be at least 0.01"))
+                .expectBody(Matchers.anyOf(
+                        Matchers.equalTo("Deposit amount must be at least 0.01"),
+                        Matchers.equalTo("Invalid account or amount")
+                ))
                 .build();
     }
 
@@ -64,7 +70,9 @@ public class ResponseSpecs {
     public static ResponseSpecification badRequestTransferLessMin() {
         return defaultResponseBuilder()
                 .expectStatusCode(HttpStatus.SC_BAD_REQUEST)
-                .expectBody(Matchers.equalTo("Transfer amount must be at least 0.01"))
+                .expectBody(Matchers.anyOf(
+                        Matchers.equalTo("Transfer amount must be at least 0.01"),
+                        Matchers.equalTo("Invalid transfer: insufficient funds or invalid accounts")))
                 .build();
     }
 

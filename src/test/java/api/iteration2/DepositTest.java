@@ -3,10 +3,10 @@ package api.iteration2;
 import api.models.SumValues;
 import api.models.UserModel;
 import api.specs.ResponseSpecs;
+import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
 import io.restassured.specification.ResponseSpecification;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -14,20 +14,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 
 public class DepositTest extends BaseTest {
 
-    @ParameterizedTest
-    @MethodSource("validDepositsData")
-    public void userCanDeposit(SumValues depositSum) {
-        UserModel user = UserSteps.createUser();
-        long accountId = UserSteps.createAccount(user).getId();
-        float initialBalance = UserSteps.getAccBalance(user.getToken(), accountId);
-        UserSteps.depositAndAssert(
-                softly, initialBalance,
-                user.getToken(), accountId, depositSum);
-        UserSteps.deleteUsers(user);
-    }
+
 
     public static Stream<Arguments> validDepositsData() {
         return Stream.of(
@@ -37,18 +30,21 @@ public class DepositTest extends BaseTest {
     }
 
     @ParameterizedTest
-    @MethodSource("invalidDepositsSum")
-    public void userCannotDepositInvalidSum(SumValues sum, ResponseSpecification spec) {
+    @MethodSource("validDepositsData")
+    @Tag("with_database_with_fix")
+    public void userCanDepositTest(SumValues depositSum) {
         UserModel user = UserSteps.createUser();
         long accountId = UserSteps.createAccount(user).getId();
-        UserSteps.deposit(
-                user.getToken(),
-                accountId,
-                sum,
-                spec
-        );
+        float initialBalance = UserSteps.getAccBalance(user.getToken(), accountId);
+        UserSteps.depositAndAssert(
+                softly, initialBalance,
+                user.getToken(), accountId, depositSum);
+
+        UserSteps.matchAccountInfoWithDao(user, accountId);
+
         UserSteps.deleteUsers(user);
     }
+
 
     public static Stream<Arguments> invalidDepositsSum() {
         return Stream.of(
@@ -57,8 +53,30 @@ public class DepositTest extends BaseTest {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidDepositsSum")
+    @Tag("with_database_with_fix")
+    public void userCannotDepositInvalidSumTest(SumValues sum, ResponseSpecification spec) {
+        UserModel user = UserSteps.createUser();
+        long accountId = UserSteps.createAccount(user).getId();
+        UserSteps.deposit(
+                user.getToken(),
+                accountId,
+                sum,
+                spec
+        );
+
+        assertEquals(0.00f, UserSteps.getAccBalance(user.getToken(), accountId), 0.0001f);
+
+        UserSteps.matchAccountInfoWithDao(user, accountId);
+
+        UserSteps.deleteUsers(user);
+    }
+
+
     @Test
-    public void userCanNotDepositIntoNotExistingAcc() {
+    @Tag("with_database_with_fix")
+    public void userCanNotDepositIntoNotExistingAccTest() {
         UserModel user = UserSteps.createUser();
         long notExistingAcc = (long) (Math.random() * 10000);
         UserSteps.deposit(
@@ -67,23 +85,32 @@ public class DepositTest extends BaseTest {
                 SumValues.SOMEDEPOSIT,
                 ResponseSpecs.unauthorized());
 
+        assertEquals(0, UserSteps.getAccounts(user.getToken()).size());
+        assertNull(DataBaseSteps.getAccountByCustomerId(user.getId()));
+
+        UserSteps.deleteUsers(user);
     }
 
+
     @Test
-    public void userCanNotDepositIntoAnotherUserAcc() {
+    @Tag("with_database_with_fix")
+    public void userCanNotDepositIntoAnotherUserAccTest() {
         UserModel user1 = UserSteps.createUser();
 
         UserModel user2 = UserSteps.createUser();
-        long user2Acc = UserSteps.createAccount(user2).getId();
+        long user2AccId = UserSteps.createAccount(user2).getId();
 
         //пользователь1 пытается положить депозит на счет пользователя2
         UserSteps.deposit(
                 user1.getToken(),
-                user2Acc,
+                user2AccId,
                 SumValues.SOMEDEPOSIT,
                 ResponseSpecs.unauthorized());
 
-        UserSteps.deleteUsers(user1, user2);
+        assertEquals(0.00f, UserSteps.getAccBalance(user2.getToken(), user2AccId), 0.0001f);
 
+        UserSteps.matchAccountInfoWithDao(user2, user2AccId);
+
+        UserSteps.deleteUsers(user1, user2);
     }
 }
