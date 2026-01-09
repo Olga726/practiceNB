@@ -14,8 +14,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import ui.iteration2.pages.AlertMessages;
 import ui.iteration2.pages.DepositPage;
-import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selenide.*;
+
+import static com.codeborne.selenide.Condition.exactValue;
+
 
 public class DepositUiTest extends BaseUiTest {
     private UserModel user;
