@@ -1,48 +1,37 @@
 package ui.iteration2;
 
-import api.iteration2.UserSteps;
-import api.iteration2.models.UserModel;
-import api.iteration2.specs.RequestSpecs;
-import com.codeborne.selenide.Configuration;
-import com.codeborne.selenide.Selectors;
-import com.codeborne.selenide.Selenide;
-import org.apache.hc.core5.http.HttpStatus;
-import org.junit.jupiter.api.BeforeAll;
+import api.steps.UserSteps;
+
+import api.models.UserModel;
+
+import com.codeborne.selenide.Condition;
+import common.annotations.UserSession;
+import common.storage.SessionStorage;
+import generators.NameGenerator;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.openqa.selenium.Alert;
-
-import java.util.Map;
-
+import ui.iteration2.pages.AlertMessages;
+import ui.iteration2.pages.DashboardPage;
+import ui.iteration2.pages.EditProfilePage;
 import static com.codeborne.selenide.Condition.*;
-import static com.codeborne.selenide.Selectors.byAttribute;
-import static com.codeborne.selenide.Selenide.*;
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static ui.iteration2.pages.BasePage.DEFAULTUSER_NAME;
+import static ui.iteration2.pages.DashboardPage.DEFAULTWELCOMENAME;
 
-public class UserNameChangeUITest {
-    private static UserModel user1;
-
-    @BeforeAll
-    public static void setupSelenoid() {
-        Configuration.remote = "http://localhost:4444/wd/hub";
-        Configuration.baseUrl = "http://192.168.1.51";
-        Configuration.browser = "chrome";
-        Configuration.browserSize = "1928x1080";
-
-        Configuration.browserCapabilities.setCapability("selenoid:options",
-                Map.of("enableVNC", true, "enableLog", true));
-    }
+public class UserNameChangeUITest extends BaseUiTest {
+    private UserModel user;
+    private String newName;
 
     @BeforeEach
-    public void createUserAndAccount() {
-        user1 = UserSteps.createUser();
+    public void init(){
+        user = SessionStorage.getUser(1);
     }
 
+    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "Johny Donny",
@@ -51,56 +40,28 @@ public class UserNameChangeUITest {
             "Wolfeschlegelsteinhausenbergerdorff Ninachinmacdholicachinskerray"
     })
     public void userCanChangeNameWithValidDataTest(String name) {
-        Selenide.open("");
 
-        //шаг 1. пользователь логинится и переходит на вкладку редактирования профиля
-        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
+        //проверка отображения имени и username
+        DashboardPage dashboard = new DashboardPage().open();
+        dashboard.getWelcomeText().shouldHave(Condition.text(DEFAULTWELCOMENAME));
+        dashboard.getUserName().shouldHave(Condition.text(DEFAULTUSER_NAME));
+        dashboard.getUserUserName().shouldHave(Condition.text(user.getUsername()));
 
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-        $(".user-username").shouldBe(visible).shouldHave(text("@" + user1.getUsername()));
+        EditProfilePage editProfilePage = dashboard.openEditProfile().getPage(EditProfilePage.class);
+        editProfilePage.editProfile(name).checkAlertAndConfirm(AlertMessages.NAME_UPDATED_SUCCESSFULLY);
 
-        $(".user-name").shouldBe(visible).click();
+        DashboardPage dashboardAfterReload = new DashboardPage().open();
+        dashboardAfterReload.getUserName().shouldHave(text(name));
 
-        $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
+        EditProfilePage editProfilePageAfterReload = new EditProfilePage().open();
+        editProfilePageAfterReload.getEditProfileInput().shouldHave(value(name));
 
-        //шаг 2. пользователь вводит новое имя
-        $(byAttribute("placeholder", "Enter new name")).setValue(name);
-
-        //шаг 3. пользователь нажимает "Save Changes"
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
-
-        //шаг 4. проверка алерта
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Name updated successfully!");
-        alert.accept();
-        sleep(500);
-
-        //шаг 5. обновление страницы
-        refresh();
-
-        //шаг 6. проверка, что новое имя отображается на ui
-        $(".user-name").shouldBe(visible).shouldHave(text(name));
-        $(byAttribute("placeholder", "Enter new name")).shouldHave(value(name));
-
-        //шаг 7. Проверка API что имя обновилось в профиле
-        String customerName = given()
-                .spec(RequestSpecs.authSpec(user1.getToken()))
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(200)
-                .extract()
-                .path("name");
-
-
-        assertEquals(name, customerName);
+        //Проверка API что имя обновилось в профиле
+        assertEquals(name, UserSteps.getCustomerName(user));
 
     }
 
+    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "<script>alert('XSS')</script>",
@@ -109,133 +70,37 @@ public class UserNameChangeUITest {
             "Ivi  Smith",
             "= /*-<>:;'.?!@#$%^^&*()+-",
             "Li",
-            "1"
+            "1",
+            "   "
     })
-    public void userCanNotChangeNameWithValidDataTest(String name) {
-        Selenide.open("");
+    public void userCanNotChangeNameWithInvalidDataTest(String name) {
+        EditProfilePage editProfilePage = new EditProfilePage().open()
+                .editProfile(name)
+                .checkAlertAndConfirmAny(
+                        AlertMessages.NAME_INVALID,
+                        AlertMessages.ENTER_VALID_NAME)
+                .getPage(EditProfilePage.class);
 
-        //шаг 1. пользователь логинится и переходит на вкладку редактирования профиля
-        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
+        //проверка, что старое имя Noname отображается на ui
+        editProfilePage.getUserName().shouldHave(text(DEFAULTUSER_NAME));
 
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-        $(".user-username").shouldBe(visible).shouldHave(text("@" + user1.getUsername()));
-
-        $(".user-name").shouldBe(visible).click();
-
-        $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
-
-        //шаг 2. пользователь вводит новое имя
-        $(byAttribute("placeholder", "Enter new name")).setValue(name);
-
-        //шаг 3. пользователь нажимает "Save Changes"
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
-
-        //шаг 4. проверка алерта
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Name must contain two words with letters only");
-        alert.accept();
-
-        //шаг 5. обновление страницы
-        refresh();
-
-        //шаг 6. проверка, что старое имя Noname отображается на ui
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-
-        //шаг 7. Проверка API что имя пустое
-        String customerName = given()
-                .spec(RequestSpecs.authSpec(user1.getToken()))
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .extract()
-                .path("name");
-
-        assertNull(customerName);
-
+        //Проверка API что имя пустое
+        assertNull(UserSteps.getCustomerName(user));
     }
 
+    @UserSession
     @Test
     public void userCanNotChangeNameWithoutEnterInputTest() {
-        Selenide.open("");
+        newName = NameGenerator.generateName();
+        UserSteps.setCustomerName(user, newName);
 
-        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
+        EditProfilePage editProfilePage =new EditProfilePage().open();
+        editProfilePage.getUserName().shouldHave(text(newName));
+        editProfilePage.clickButton().checkAlertAndConfirm(AlertMessages.NEW_NAME_IS_SAME)
+                .getPage(EditProfilePage.class);
 
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-        $(".user-username").shouldBe(visible).shouldHave(text("@" + user1.getUsername()));
-
-        $(".user-name").shouldBe(visible).click();
-
-        $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
-
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please enter a valid name.");
-        alert.accept();
-
-        refresh();
-
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-
-        String customerName = given()
-                .spec(RequestSpecs.authSpec(user1.getToken()))
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .extract()
-                .path("name");
-
-        assertNull(customerName);
+        new EditProfilePage().open().getUserName().shouldHave(text(newName));
+        assertEquals(newName, UserSteps.getCustomerName(user));
     }
 
-    @Test
-    public void userCanNotChangeNameToOnlySpacesTest() {
-        Selenide.open("");
-
-        $(byAttribute("placeholder", "Username")).sendKeys(user1.getUsername());
-        $(byAttribute("placeholder", "Password")).sendKeys(user1.getPassword());
-        $("button").click();
-        $(Selectors.byText("User Dashboard")).shouldBe(visible);
-
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-        $(".user-username").shouldBe(visible).shouldHave(text("@" + user1.getUsername()));
-
-        $(".user-name").shouldBe(visible).click();
-
-        $(Selectors.byText("✏\uFE0F Edit Profile")).shouldBe(visible);
-        $(byAttribute("placeholder", "Enter new name")).shouldBe(visible);
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).shouldBe(visible);
-
-        $(byAttribute("placeholder", "Enter new name")).setValue("   ");
-
-        $$("button").findBy(text("\uD83D\uDCBE Save Changes")).click();
-
-        Alert alert = switchTo().alert();
-        assertThat(alert.getText()).contains("Please enter a valid name.");
-        alert.accept();
-
-        refresh();
-
-        $(".user-name").shouldBe(visible).shouldHave(text("Noname"));
-
-        String customerName = given()
-                .spec(RequestSpecs.authSpec(user1.getToken()))
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then().assertThat()
-                .statusCode(HttpStatus.SC_OK)
-                .extract()
-                .path("name");
-
-        assertNull(customerName);
-    }
 }

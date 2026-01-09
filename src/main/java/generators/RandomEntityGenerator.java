@@ -5,16 +5,23 @@ import com.mifmif.common.regex.Generex;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Random;
+import java.util.UUID;
 
 public class RandomEntityGenerator {
 
     private static final Random random = new Random();
     private static final String DEFAULT_STRING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    private static final String PASSWORD_SPECIALS = "@#%^&+=";
+    private static final String PASSWORD_SPECIALS = "@#^&+=";
 
     @SuppressWarnings("unchecked")
     public static <T> T generate(Class<T> clazz) {
         try {
+        // Специальная проверка для String
+            if (clazz.equals(String.class)) {
+                return (T) UUID.randomUUID().toString().substring(0, 8);
+            }
+
+
             T instance = clazz.getDeclaredConstructor().newInstance();
 
             for (Field field : clazz.getDeclaredFields()) {
