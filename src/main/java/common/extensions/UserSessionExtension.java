@@ -8,6 +8,7 @@ import common.storage.SessionStorage;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.support.AnnotationSupport;
 import ui.iteration2.pages.BasePage;
 
 import java.util.ArrayList;
@@ -21,11 +22,22 @@ public class UserSessionExtension implements BeforeEachCallback, AfterEachCallba
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        UserSession annotation = context.getRequiredTestMethod().getAnnotation(UserSession.class);
+        UserSession annotation =
+                AnnotationSupport.findAnnotation(
+                        context.getTestMethod(), UserSession.class
+                ).orElse(
+                        AnnotationSupport.findAnnotation(
+                                context.getTestClass(), UserSession.class
+                        ).orElse(null)
+                );
+
+        /*UserSession annotation = context.getRequiredTestMethod().getAnnotation(UserSession.class);
         if (annotation == null) {
             annotation = context.getRequiredTestClass()
                     .getAnnotation(UserSession.class);
         }
+        */
+        System.out.println("beforeEach: UserSession annotation = " + annotation);
         if (annotation == null) return;
 
         int userCount = annotation.value();
@@ -48,6 +60,7 @@ public class UserSessionExtension implements BeforeEachCallback, AfterEachCallba
         BasePage.authAsUser(userToAuth.getUsername(), userToAuth.getPassword());
 
         createdUsers.set(users); // сохраняем для удаления
+
     }
 
     @Override

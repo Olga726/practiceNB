@@ -5,6 +5,8 @@ import api.models.UserModel;
 import api.specs.ResponseSpecs;
 import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
+import common.annotations.UserSession;
+import common.storage.SessionStorage;
 import io.restassured.specification.ResponseSpecification;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,7 @@ public class DepositTest extends BaseTest {
     @ParameterizedTest
     @MethodSource("validDepositsData")
     @Tag("with_database_with_fix")
+
     public void userCanDepositTest(SumValues depositSum) {
         UserModel user = UserSteps.createUser();
         long accountId = UserSteps.createAccount(user).getId();
@@ -40,9 +43,7 @@ public class DepositTest extends BaseTest {
                 softly, initialBalance,
                 user.getToken(), accountId, depositSum);
 
-        UserSteps.matchAccountInfoWithDao(user, accountId);
-
-        UserSteps.deleteUsers(user);
+        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user, accountId);
     }
 
 
@@ -68,9 +69,7 @@ public class DepositTest extends BaseTest {
 
         assertEquals(0.00f, UserSteps.getAccBalance(user.getToken(), accountId), 0.0001f);
 
-        UserSteps.matchAccountInfoWithDao(user, accountId);
-
-        UserSteps.deleteUsers(user);
+        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user, accountId);
     }
 
 
@@ -96,6 +95,7 @@ public class DepositTest extends BaseTest {
     @Tag("with_database_with_fix")
     public void userCanNotDepositIntoAnotherUserAccTest() {
         UserModel user1 = UserSteps.createUser();
+        long user1AccId = UserSteps.createAccount(user1).getId();
 
         UserModel user2 = UserSteps.createUser();
         long user2AccId = UserSteps.createAccount(user2).getId();
@@ -109,8 +109,7 @@ public class DepositTest extends BaseTest {
 
         assertEquals(0.00f, UserSteps.getAccBalance(user2.getToken(), user2AccId), 0.0001f);
 
-        UserSteps.matchAccountInfoWithDao(user2, user2AccId);
-
-        UserSteps.deleteUsers(user1, user2);
+        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user2, user2AccId);
+        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user1, user1AccId);
     }
 }

@@ -249,10 +249,11 @@ public class UserSteps {
         assertTransferResponse(softly, resp, fromAcc, toAcc, sum.getValue());
     }
 
-    public static void matchAccountInfoWithDao(UserModel user, long accId){
+    public static void matchAccountInfoWithDaoAndDeleteUser(UserModel user, long accId){
         Account account= UserSteps.getAccInfo(user.getToken(), accId);
         AccountDao accountDao = DataBaseSteps.getAccountById(accId);
         DaoAndModelAssertions.assertThat(account, accountDao).match();
+        UserSteps.deleteUsers(user);
     }
 
     public static void assertBalanceEqualsDB(String token, long accId){
