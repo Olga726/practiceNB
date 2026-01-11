@@ -77,7 +77,7 @@ public class DepositTest extends BaseTest {
     @Test
     @Tag("with_database_with_fix")
     public void userCanNotDepositIntoNotExistingAccTest() {
-        UserModel user = UserSteps.createUser();
+        UserModel user =SessionStorage.getUser(1);
         long notExistingAcc = (long) (Math.random() * 10000);
         UserSteps.deposit(
                 user.getToken(),
@@ -88,7 +88,6 @@ public class DepositTest extends BaseTest {
         assertEquals(0, UserSteps.getAccounts(user.getToken()).size());
         assertNull(DataBaseSteps.getAccountByCustomerId(user.getId()));
 
-        UserSteps.deleteUsers(user);
     }
 
 
