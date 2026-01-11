@@ -6,6 +6,7 @@ import api.specs.ResponseSpecs;
 import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
 import common.annotations.UserSession;
+import common.extensions.UserSessionExtension;
 import common.storage.SessionStorage;
 import io.restassured.specification.ResponseSpecification;
 import org.junit.jupiter.api.Tag;
@@ -14,12 +15,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-
+@UserSession
 public class DepositTest extends BaseTest {
 
 
@@ -36,14 +38,14 @@ public class DepositTest extends BaseTest {
     @Tag("with_database_with_fix")
 
     public void userCanDepositTest(SumValues depositSum) {
-        UserModel user = UserSteps.createUser();
+        UserModel user =SessionStorage.getUser(1);
         long accountId = UserSteps.createAccount(user).getId();
         float initialBalance = UserSteps.getAccBalance(user.getToken(), accountId);
         UserSteps.depositAndAssert(
                 softly, initialBalance,
                 user.getToken(), accountId, depositSum);
 
-        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user, accountId);
+        UserSteps.matchAccountInfoWithDao(user, accountId);
     }
 
 
@@ -58,7 +60,7 @@ public class DepositTest extends BaseTest {
     @MethodSource("invalidDepositsSum")
     @Tag("with_database_with_fix")
     public void userCannotDepositInvalidSumTest(SumValues sum, ResponseSpecification spec) {
-        UserModel user = UserSteps.createUser();
+        UserModel user =SessionStorage.getUser(1);
         long accountId = UserSteps.createAccount(user).getId();
         UserSteps.deposit(
                 user.getToken(),
@@ -68,8 +70,7 @@ public class DepositTest extends BaseTest {
         );
 
         assertEquals(0.00f, UserSteps.getAccBalance(user.getToken(), accountId), 0.0001f);
-
-        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user, accountId);
+        UserSteps.matchAccountInfoWithDao(user, accountId);
     }
 
 
@@ -92,12 +93,11 @@ public class DepositTest extends BaseTest {
 
 
     @Test
+    @UserSession(value = 2)
     @Tag("with_database_with_fix")
     public void userCanNotDepositIntoAnotherUserAccTest() {
-        UserModel user1 = UserSteps.createUser();
-        long user1AccId = UserSteps.createAccount(user1).getId();
-
-        UserModel user2 = UserSteps.createUser();
+        UserModel user1 = SessionStorage.getUser(1);
+        UserModel user2 = SessionStorage.getUser(2);
         long user2AccId = UserSteps.createAccount(user2).getId();
 
         //пользователь1 пытается положить депозит на счет пользователя2
@@ -108,8 +108,7 @@ public class DepositTest extends BaseTest {
                 ResponseSpecs.unauthorized());
 
         assertEquals(0.00f, UserSteps.getAccBalance(user2.getToken(), user2AccId), 0.0001f);
+        UserSteps.matchAccountInfoWithDao(user2, user2AccId);
 
-        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user2, user2AccId);
-        UserSteps.matchAccountInfoWithDaoAndDeleteUser(user1, user1AccId);
     }
 }

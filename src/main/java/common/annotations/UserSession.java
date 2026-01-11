@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface UserSession {
     int value() default 1;
     int auth() default 1;
+    boolean ui() default false;
 }

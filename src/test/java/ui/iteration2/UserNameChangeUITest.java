@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static ui.iteration2.pages.BasePage.DEFAULTUSER_NAME;
 import static ui.iteration2.pages.DashboardPage.DEFAULTWELCOMENAME;
 
+@UserSession(ui = true)
 public class UserNameChangeUITest extends BaseUiTest {
     private UserModel user;
     private String newName;
@@ -32,7 +33,6 @@ public class UserNameChangeUITest extends BaseUiTest {
         user = SessionStorage.getUser(1);
     }
 
-    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "Johny Donny",
@@ -62,7 +62,6 @@ public class UserNameChangeUITest extends BaseUiTest {
 
     }
 
-    @UserSession
     @ParameterizedTest
     @ValueSource(strings = {
             "<script>alert('XSS')</script>",
@@ -88,8 +87,7 @@ public class UserNameChangeUITest extends BaseUiTest {
         //Проверка API что имя пустое
         assertNull(UserSteps.getCustomerName(user));
     }
-
-    @UserSession
+    
     @Test
     public void userCanNotChangeNameWithoutEnterInputTest() {
         newName = NameGenerator.generateName();

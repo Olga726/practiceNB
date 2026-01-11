@@ -27,7 +27,7 @@ import static com.codeborne.selenide.Condition.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@UserSession(value = 2, auth = 1)
+@UserSession(value = 2, auth = 1, ui = true)
 public class TransferUiTest extends BaseUiTest {
     private UserModel user1;
     private UserModel user2;

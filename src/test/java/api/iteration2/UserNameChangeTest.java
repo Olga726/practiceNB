@@ -6,9 +6,9 @@ import api.models.UpdateUserNameResponse;
 import api.models.UserModel;
 import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
-import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
+import common.annotations.UserSession;
+import common.storage.SessionStorage;
+
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -20,33 +20,12 @@ import api.sceleton.requests.ValidatedCrudRequester;
 import api.specs.RequestSpecs;
 import api.specs.ResponseSpecs;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
+@UserSession
 public class UserNameChangeTest extends BaseTest {
-    private static UserModel user;
-    @BeforeAll
-    public static void setUpRestAsuured() {
-        RestAssured.filters(
-                List.of(new RequestLoggingFilter(),
-                        new ResponseLoggingFilter()));
-    }
-
-    @BeforeEach
-    public void preSteps() {
-        //создание пользователя
-        user = UserSteps.createUser();
-    }
-
-    @AfterEach
-    public void deleteUser() {
-        UserSteps.deleteUsers(user);
-
-    }
-
 
     public static Stream<Arguments> nameValidData() {
         return Stream.of(
@@ -63,6 +42,7 @@ public class UserNameChangeTest extends BaseTest {
     @Tag("with_database_with_fix")
     public void userCanUpdateCustomerProfileWithValidDataTest(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
+        UserModel user = SessionStorage.getUser(1);
 
         UpdateUserNameResponse updateUserNameResponse = new ValidatedCrudRequester<UpdateUserNameResponse>(
                 RequestSpecs.authSpec(user.getToken()),
@@ -102,7 +82,7 @@ public class UserNameChangeTest extends BaseTest {
     @Tag("with_database_with_fix")
     public void userCanNotUpdateCustomerProfileWithInvalidDataTest(String name) {
         UpdateUserNameRequest updateUserNameRequest = new UpdateUserNameRequest(name);
-
+        UserModel user = SessionStorage.getUser(1);
         new CrudRequester(RequestSpecs.authSpec(user.getToken()),
                 Endpoint.NAME,
                 ResponseSpecs.badRequestInvalidUsername())

@@ -18,26 +18,17 @@ import java.util.List;
 
 public class UserSessionExtension implements BeforeEachCallback, AfterEachCallback {
 
+
     private final ThreadLocal<List<UserModel>> createdUsers = new ThreadLocal<>();
 
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        UserSession annotation =
-                AnnotationSupport.findAnnotation(
-                        context.getTestMethod(), UserSession.class
-                ).orElse(
-                        AnnotationSupport.findAnnotation(
-                                context.getTestClass(), UserSession.class
-                        ).orElse(null)
-                );
-
-        /*UserSession annotation = context.getRequiredTestMethod().getAnnotation(UserSession.class);
+        UserSession annotation = context.getRequiredTestMethod().getAnnotation(UserSession.class);
         if (annotation == null) {
             annotation = context.getRequiredTestClass()
                     .getAnnotation(UserSession.class);
         }
-        */
-        System.out.println("beforeEach: UserSession annotation = " + annotation);
+
         if (annotation == null) return;
 
         int userCount = annotation.value();
@@ -55,10 +46,11 @@ public class UserSessionExtension implements BeforeEachCallback, AfterEachCallba
         }
 
         SessionStorage.setUser(users);
-
         UserModel userToAuth = users.get(authIndex - 1);
-        BasePage.authAsUser(userToAuth.getUsername(), userToAuth.getPassword());
 
+        if(annotation.ui()) {
+            BasePage.authAsUser(userToAuth.getUsername(), userToAuth.getPassword());
+        }
         createdUsers.set(users); // сохраняем для удаления
 
     }
@@ -78,4 +70,5 @@ public class UserSessionExtension implements BeforeEachCallback, AfterEachCallba
 
         WebDriverRunner.closeWebDriver();
     }
+
 }

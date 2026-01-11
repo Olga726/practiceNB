@@ -16,7 +16,7 @@ import ui.iteration2.pages.AlertMessages;
 import ui.iteration2.pages.DepositPage;
 import static com.codeborne.selenide.Condition.*;
 
-
+@UserSession(ui = true)
 public class DepositUiTest extends BaseUiTest {
     private UserModel user;
     private Account acc;
@@ -27,7 +27,6 @@ public class DepositUiTest extends BaseUiTest {
         acc = UserSteps.createAccount(user);
     }
 
-    @UserSession
     @ParameterizedTest
     @ValueSource(doubles = {0.01, 5000.00})
     public void userCanDepositMaxOrMinTest(double amount) {
@@ -42,35 +41,30 @@ public class DepositUiTest extends BaseUiTest {
     }
 
     @Test
-    @UserSession
     public void UserCanNotDepositLessMinTest() {
         new UiSteps(user).negativeDepositAssert((int) acc.getId(), acc.getAccountNumber(),
                 String.valueOf(SumValues.LESSMIN.getValue()), AlertMessages.ENTER_VALID_AMOUNT);
     }
 
     @Test
-    @UserSession
     public void UserCanNotDepositOverMaxTest() {
         new UiSteps(user).negativeDepositAssert((int) acc.getId(), acc.getAccountNumber(),
                 String.valueOf(SumValues.OVERMAXDEPOSIT.getValue()), AlertMessages.DEPOSIT_LESS);
     }
 
     @Test
-    @UserSession
     public void UserCanNotDepositWithNotSelectedAccountTest() {
         new UiSteps(user).negativeDepositAssert((int) acc.getId(), "Choose an account",
                 String.valueOf(SumValues.SOMEDEPOSIT.getValue()), AlertMessages.SELECT_ACCOUNT);
     }
 
     @Test
-    @UserSession
     public void UserCanNotDepositWithNotSelectedAmountTest() {
         new UiSteps(user).negativeDepositAssert((int) acc.getId(), acc.getAccountNumber(),
                 null, AlertMessages.ENTER_VALID_AMOUNT);
     }
 
     @Disabled("нет валидации в поле суммы")
-    @UserSession
     @ParameterizedTest
     @CsvSource({
             "5000.0000000000000000001, 5000.00",

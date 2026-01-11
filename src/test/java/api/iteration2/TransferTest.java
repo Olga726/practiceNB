@@ -1,17 +1,13 @@
 package api.iteration2;
 
-
-import api.models.DeleteMessage;
 import api.models.SumValues;
 import api.models.UserModel;
-import api.sceleton.requests.Endpoint;
-import api.sceleton.requests.ValidatedCrudRequester;
-import api.specs.RequestSpecs;
 import api.specs.ResponseSpecs;
-import api.steps.DataBaseSteps;
 import api.steps.UserSteps;
+import common.annotations.UserSession;
+import common.storage.SessionStorage;
 import io.restassured.specification.ResponseSpecification;
-import org.junit.jupiter.api.AfterEach;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,11 +18,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
-
+@UserSession(value = 2)
 public class TransferTest extends BaseTest {
 
     private UserModel user1;
@@ -37,38 +30,12 @@ public class TransferTest extends BaseTest {
 
     @BeforeEach
     public void preSteps() {
-        //создание пользователя1 и счетов
-        user1 = UserSteps.createUser();
+        user1 = SessionStorage.getUser(1);
+        user2 = SessionStorage.getUser(2);
         user1acc1Id = UserSteps.createAccount(user1).getId();
         user1acc2Id = UserSteps.createAccount(user1).getId();
-
-        //создание пользователя2 и счета
-        user2 = UserSteps.createUser();
         user2acc1Id = UserSteps.createAccount(user2).getId();
 
-    }
-
-    @AfterEach
-    public void deleteUsers(){
-        long[] ids = {user1.getId(), user2.getId()};
-
-        for(long id : ids) {
-            String deleteMessage = new ValidatedCrudRequester<DeleteMessage>(
-                    RequestSpecs.adminSpec(),
-                    Endpoint.ADMIN_USER_DELETE,
-                    ResponseSpecs.success())
-                    .delete(id);
-
-            String json = new ValidatedCrudRequester<>(
-                    RequestSpecs.adminSpec(),
-                    Endpoint.ADMIN_GET_ALLUSERS,
-                    ResponseSpecs.success())
-                    .getAll();
-
-            assertThat(deleteMessage).isEqualTo("User with ID "+id +" deleted successfully.");
-            assertFalse(json.contains("\"id\": " + id));
-
-        }
     }
 
     //минимальный и максимальный перевод на свой счет
@@ -87,7 +54,6 @@ public class TransferTest extends BaseTest {
 
     }
 
-
     //минимальный и максимальный перевод на чужой счет
     @ParameterizedTest
     @CsvSource({
@@ -102,7 +68,6 @@ public class TransferTest extends BaseTest {
         UserSteps.assertBalanceEqualsDB(user2.getToken(), user2acc1Id);
         UserSteps.assertBalanceEqualsDB(user1.getToken(), user1acc1Id);
     }
-
 
     @Test
     @Tag("with_database_with_fix")
@@ -129,7 +94,6 @@ public class TransferTest extends BaseTest {
         UserSteps.assertBalanceEqualsDB(user1.getToken(), user1acc1Id);
     }
 
-
     @ParameterizedTest
     @MethodSource("transferInvalidData")
     @Tag("with_database_with_fix")
@@ -152,7 +116,6 @@ public class TransferTest extends BaseTest {
                 Arguments.of(SumValues.MINDEPOSIT, SumValues.LESSMIN, ResponseSpecs.badRequestTransferLessMin())
         );
     }
-
 
     @ParameterizedTest
     @MethodSource("overBalanceData")
@@ -181,6 +144,5 @@ public class TransferTest extends BaseTest {
                 Arguments.of("OTHER")    // на чужой счёт
         );
     }
-
 
 }
